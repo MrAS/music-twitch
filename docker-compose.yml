@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  bot:
+    build: .
+    container_name: twitch-restreamer-bot
+    restart: unless-stopped
+    volumes:
+      - ./cache:/app/cache
+      - ./allowed.json:/app/allowed.json
+    environment:
+      - TWITCH_USERNAME=mybot
+      - TWITCH_TOKEN=oauth:token
+      - TWITCH_CHANNEL=mychannel
+      - CORE_URL=http://restreamer:8080
+      - CORE_USER=admin
+      - CORE_PASS=password
+      - CACHE_DIR=/app/cache
+      - ALLOWED_CATALOG_PATH=/app/allowed.json

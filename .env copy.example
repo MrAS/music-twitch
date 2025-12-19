@@ -1,0 +1,14 @@
+# Twitch Bot Configuration
+TWITCH_USERNAME=m7tref
+TWITCH_TOKEN=oauth:l5qs1xab0nl1638jquc2x9vjmljir4
+TWITCH_CHANNEL=m7tref
+
+# Datarhei Restreamer Core Configuration
+CORE_URL=https://stream.egpeak.com/
+CORE_USER=admin
+CORE_PASS=Aa@0108100
+CORE_PROCESS_ID=Twitch
+
+# System Configuration
+CACHE_DIR=./cache
+ALLOWED_CATALOG_PATH=./allowed.json
