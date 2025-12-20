@@ -14,6 +14,14 @@ const logger = winston.createLogger({
 // Use YT_DLP_PATH env var or default to system 'yt-dlp'
 const YT_DLP_PATH = process.env.YT_DLP_PATH || 'yt-dlp';
 
+// Configure FFmpeg paths if FFMPEG_PATH is set (Windows)
+const FFMPEG_PATH = process.env.FFMPEG_PATH;
+if (FFMPEG_PATH) {
+    ffmpeg.setFfmpegPath(path.join(FFMPEG_PATH, 'ffmpeg.exe'));
+    ffmpeg.setFfprobePath(path.join(FFMPEG_PATH, 'ffprobe.exe'));
+    logger.info(`Using FFmpeg from: ${FFMPEG_PATH}`);
+}
+
 export class DownloaderService {
     constructor() {
         fs.ensureDirSync(config.system.cacheDir);
