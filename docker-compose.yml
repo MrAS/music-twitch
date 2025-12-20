@@ -3,8 +3,8 @@ services:
     build: .
     container_name: twitch-music-bot
     restart: unless-stopped
-    ports:
-      - "3000:3000"
+    # Use host network to access Restreamer on localhost:1935
+    network_mode: host
     volumes:
       - ./cache:/app/cache
       - ./allowed.json:/app/allowed.json:rw
@@ -14,24 +14,3 @@ services:
       - CACHE_DIR=/app/cache
       - ALLOWED_CATALOG_PATH=/app/allowed.json
       - API_PORT=3000
-    networks:
-      - twitch-net
-
-  # Optional: Uncomment if you want to run Restreamer in the same stack
-  # restreamer:
-  #   image: datarhei/restreamer:latest
-  #   container_name: restreamer
-  #   restart: unless-stopped
-  #   ports:
-  #     - "8080:8080"
-  #     - "1935:1935"
-  #     - "6000:6000/udp"
-  #   volumes:
-  #     - ./restreamer-config:/core/config
-  #     - ./restreamer-data:/core/data
-  #   networks:
-  #     - twitch-net
-
-networks:
-  twitch-net:
-    driver: bridge
