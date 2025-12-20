@@ -12,6 +12,18 @@ const logger = winston.createLogger({
 // Use YT_DLP_PATH env var or default to system 'yt-dlp'
 const YT_DLP_PATH = process.env.YT_DLP_PATH || 'yt-dlp';
 
+// Optional: YouTube cookies file path for bypassing rate limits
+const COOKIES_FILE = process.env.YOUTUBE_COOKIES || '';
+
+// Get cookies arguments if file exists
+function getCookiesArgs(): string[] {
+    if (COOKIES_FILE && fs.existsSync(COOKIES_FILE)) {
+        logger.info(`Using YouTube cookies from: ${COOKIES_FILE}`);
+        return ['--cookies', COOKIES_FILE];
+    }
+    return [];
+}
+
 export interface YouTubeSearchResult {
     id: string;
     title: string;
@@ -64,7 +76,8 @@ export class YouTubeService {
                 '--dump-json',
                 '--flat-playlist',
                 '--no-download',
-                '--js-runtimes', 'deno'
+                '--js-runtimes', 'deno',
+                ...getCookiesArgs()
             ]);
 
             // Parse multiple JSON objects (one per line)
@@ -100,7 +113,8 @@ export class YouTubeService {
                 '--dump-json',
                 '--no-playlist',
                 '--no-download',
-                '--js-runtimes', 'deno'
+                '--js-runtimes', 'deno',
+                ...getCookiesArgs()
             ]);
 
             const info = JSON.parse(result.stdout);
@@ -147,6 +161,7 @@ export class YouTubeService {
                 '--no-playlist',
                 '--newline',  // Important for progress parsing
                 '--js-runtimes', 'deno',
+                ...getCookiesArgs(),
                 url
             ]);
 
