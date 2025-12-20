@@ -1,0 +1,404 @@
+:root {
+    --bg-dark: #0f0f1a;
+    --bg-card: #1a1a2e;
+    --bg-sidebar: #16213e;
+    --accent: #e94560;
+    --accent-hover: #ff6b6b;
+    --text: #eee;
+    --text-muted: #888;
+    --success: #4ecdc4;
+    --danger: #ff6b6b;
+    --border: #2a2a4a;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: var(--bg-dark);
+    color: var(--text);
+    min-height: 100vh;
+}
+
+/* Login */
+.login-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background: linear-gradient(135deg, var(--bg-dark), var(--bg-sidebar));
+}
+
+.login-box {
+    background: var(--bg-card);
+    padding: 3rem;
+    border-radius: 16px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    text-align: center;
+    animation: fadeIn 0.5s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.login-box h1 {
+    margin-bottom: 2rem;
+    color: var(--accent);
+}
+
+.login-box input {
+    display: block;
+    width: 100%;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg-dark);
+    color: var(--text);
+    font-size: 1rem;
+}
+
+.login-box input:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+.login-box button {
+    width: 100%;
+    padding: 1rem;
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+.login-box button:hover {
+    background: var(--accent-hover);
+}
+
+.error {
+    color: var(--danger);
+    margin-top: 1rem;
+}
+
+/* Dashboard Layout */
+.dashboard {
+    display: flex;
+    min-height: 100vh;
+}
+
+.sidebar {
+    width: 250px;
+    background: var(--bg-sidebar);
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+}
+
+.logo {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: var(--accent);
+    padding: 1rem 0;
+    margin-bottom: 1rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.sidebar ul {
+    list-style: none;
+    flex: 1;
+}
+
+.sidebar li {
+    padding: 1rem;
+    cursor: pointer;
+    border-radius: 8px;
+    margin-bottom: 0.5rem;
+    transition: all 0.3s;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.sidebar li:hover {
+    background: rgba(233, 69, 96, 0.2);
+}
+
+.sidebar li.active {
+    background: var(--accent);
+}
+
+.logout-btn {
+    padding: 1rem;
+    cursor: pointer;
+    border-radius: 8px;
+    text-align: center;
+    transition: all 0.3s;
+    margin-top: auto;
+}
+
+.logout-btn:hover {
+    background: rgba(255, 107, 107, 0.2);
+}
+
+/* Content */
+.content {
+    flex: 1;
+    padding: 2rem;
+    overflow-y: auto;
+}
+
+.page h2 {
+    margin-bottom: 1.5rem;
+    color: var(--accent);
+}
+
+/* Status Grid */
+.status-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.status-card {
+    background: var(--bg-card);
+    padding: 1.5rem;
+    border-radius: 12px;
+    border-left: 4px solid var(--accent);
+}
+
+.status-card h3 {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    margin-bottom: 0.5rem;
+}
+
+.status-card p {
+    font-size: 1.5rem;
+    font-weight: bold;
+}
+
+.current-playing {
+    grid-column: span 2;
+}
+
+/* Tables */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--bg-card);
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+th,
+td {
+    padding: 1rem;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+}
+
+th {
+    background: var(--bg-sidebar);
+    color: var(--accent);
+}
+
+tr:hover {
+    background: rgba(233, 69, 96, 0.1);
+}
+
+/* Buttons */
+.actions {
+    margin-bottom: 1rem;
+    display: flex;
+    gap: 0.5rem;
+}
+
+button {
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: all 0.3s;
+    background: var(--bg-card);
+    color: var(--text);
+    border: 1px solid var(--border);
+}
+
+button:hover {
+    background: var(--accent);
+    border-color: var(--accent);
+}
+
+button.danger {
+    border-color: var(--danger);
+}
+
+button.danger:hover {
+    background: var(--danger);
+}
+
+button.success {
+    border-color: var(--success);
+}
+
+button.success:hover {
+    background: var(--success);
+    color: var(--bg-dark);
+}
+
+/* Core Actions */
+.core-actions {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.core-actions button {
+    padding: 1.5rem 3rem;
+    font-size: 1.1rem;
+}
+
+/* Current Track */
+.current-track {
+    background: var(--bg-card);
+    padding: 1.5rem;
+    border-radius: 12px;
+    margin-bottom: 1rem;
+    border-left: 4px solid var(--success);
+}
+
+/* Modal */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal.show {
+    display: flex;
+}
+
+.modal-content {
+    background: var(--bg-card);
+    padding: 2rem;
+    border-radius: 16px;
+    min-width: 400px;
+}
+
+.modal-content h3 {
+    margin-bottom: 1.5rem;
+    color: var(--accent);
+}
+
+.modal-content input,
+.modal-content select {
+    display: block;
+    width: 100%;
+    padding: 0.75rem;
+    margin-bottom: 1rem;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg-dark);
+    color: var(--text);
+}
+
+.modal-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+    margin-top: 1rem;
+}
+
+/* Actions in table */
+td button {
+    padding: 0.5rem 1rem;
+    font-size: 0.8rem;
+}
+
+/* Download Progress */
+.download-section {
+    background: var(--bg-card);
+    padding: 1.5rem;
+    border-radius: 12px;
+    margin-top: 1.5rem;
+    border-left: 4px solid #f39c12;
+}
+
+.download-section h3 {
+    margin-bottom: 1rem;
+    color: #f39c12;
+}
+
+.download-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.download-item span:first-child {
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.progress-bar {
+    flex: 2;
+    height: 12px;
+    background: var(--bg-dark);
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #f39c12, #e74c3c);
+    border-radius: 6px;
+    transition: width 0.3s ease;
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.7;
+    }
+}
+
+#downloadPercent {
+    min-width: 50px;
+    text-align: right;
+    font-weight: bold;
+    color: #f39c12;
+}

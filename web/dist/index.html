@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Music Bot Admin</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <div class="login-container" id="loginContainer">
+        <div class="login-box">
+            <h1>🎵 Music Bot Admin</h1>
+            <form id="loginForm">
+                <input type="text" id="username" placeholder="Username" required>
+                <input type="password" id="password" placeholder="Password" required>
+                <button type="submit">Login</button>
+                <p id="loginError" class="error"></p>
+            </form>
+        </div>
+    </div>
+
+    <div class="dashboard" id="dashboard" style="display: none;">
+        <nav class="sidebar">
+            <div class="logo">🎵 Music Bot</div>
+            <ul>
+                <li class="active" data-page="status"><span>📊</span> Status</li>
+                <li data-page="queue"><span>📜</span> Queue</li>
+                <li data-page="catalog"><span>📁</span> Catalog</li>
+                <li data-page="cache"><span>💾</span> Cache</li>
+                <li data-page="logs"><span>📝</span> Logs</li>
+                <li data-page="core"><span>⚙️</span> Core</li>
+            </ul>
+            <div class="logout-btn" onclick="logout()">🚪 Logout</div>
+        </nav>
+
+        <main class="content">
+            <!-- Status Page -->
+            <section id="statusPage" class="page">
+                <h2>Dashboard Status</h2>
+                <div class="status-grid">
+                    <div class="status-card">
+                        <h3>Bot Status</h3>
+                        <p id="botStatus">--</p>
+                    </div>
+                    <div class="status-card">
+                        <h3>Queue Length</h3>
+                        <p id="queueLength">--</p>
+                    </div>
+                    <div class="status-card">
+                        <h3>Core Status</h3>
+                        <p id="coreStatus">--</p>
+                    </div>
+                    <div class="status-card current-playing">
+                        <h3>Now Playing</h3>
+                        <p id="currentPlaying">--</p>
+                    </div>
+                </div>
+
+                <!-- Download Progress Section -->
+                <div class="download-section" id="downloadSection" style="display: none;">
+                    <h3>⬇️ Download Progress</h3>
+                    <div class="download-item">
+                        <span id="downloadTitle">--</span>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="downloadProgress" style="width: 0%"></div>
+                        </div>
+                        <span id="downloadPercent">0%</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Queue Page -->
+            <section id="queuePage" class="page" style="display: none;">
+                <h2>Queue Management</h2>
+                <div class="actions">
+                    <button onclick="skipTrack()">⏭️ Skip</button>
+                    <button onclick="clearQueue()" class="danger">🗑️ Clear Queue</button>
+                </div>
+                <div class="current-track" id="currentTrackInfo"></div>
+                <table id="queueTable">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Title</th>
+                            <th>Key</th>
+                            <th>Requested By</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="queueBody"></tbody>
+                </table>
+            </section>
+
+            <!-- Catalog Page -->
+            <section id="catalogPage" class="page" style="display: none;">
+                <h2>Allowed Catalog</h2>
+                <div class="actions">
+                    <button onclick="showAddItem()">➕ Add Item</button>
+                </div>
+                <table id="catalogTable">
+                    <thead>
+                        <tr>
+                            <th>Key</th>
+                            <th>Title</th>
+                            <th>Type</th>
+                            <th>Source</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="catalogBody"></tbody>
+                </table>
+            </section>
+
+            <!-- Cache Page -->
+            <section id="cachePage" class="page" style="display: none;">
+                <h2>Downloaded Cache</h2>
+                <div class="actions">
+                    <button onclick="clearCache()" class="danger">🗑️ Clear All Cache</button>
+                </div>
+                <table id="cacheTable">
+                    <thead>
+                        <tr>
+                            <th>Filename</th>
+                            <th>Size</th>
+                            <th>Modified</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="cacheBody"></tbody>
+                </table>
+            </section>
+
+            <!-- Logs Page -->
+            <section id="logsPage" class="page" style="display: none;">
+                <h2>Twitch Command Logs</h2>
+                <div class="actions">
+                    <button onclick="refreshLogs()">🔄 Refresh</button>
+                </div>
+                <table id="logsTable">
+                    <thead>
+                        <tr>
+                            <th>Time</th>
+                            <th>User</th>
+                            <th>Command</th>
+                            <th>Args</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="logsBody"></tbody>
+                </table>
+            </section>
+
+            <!-- Core Page -->
+            <section id="corePage" class="page" style="display: none;">
+                <h2>Restreamer Core Controls</h2>
+                <div class="core-actions">
+                    <button onclick="coreStart()" class="success">▶️ Start</button>
+                    <button onclick="coreStop()" class="danger">⏹️ Stop</button>
+                    <button onclick="coreRestart()">🔄 Restart</button>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Add Item Modal -->
+    <div class="modal" id="addItemModal">
+        <div class="modal-content">
+            <h3>Add Catalog Item</h3>
+            <form id="addItemForm">
+                <input type="text" id="itemKey" placeholder="Key (unique ID)" required>
+                <input type="text" id="itemTitle" placeholder="Title" required>
+                <select id="itemType">
+                    <option value="youtube_url">YouTube URL</option>
+                    <option value="local_file">Local File</option>
+                </select>
+                <input type="text" id="itemSource" placeholder="URL or Path" required>
+                <div class="modal-actions">
+                    <button type="button" onclick="closeModal()">Cancel</button>
+                    <button type="submit">Add</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+
+</html>
