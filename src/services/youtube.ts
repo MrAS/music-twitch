@@ -63,7 +63,8 @@ export class YouTubeService {
                 `ytsearch${count}:${query}`,
                 '--dump-json',
                 '--flat-playlist',
-                '--no-download'
+                '--no-download',
+                '--js-runtimes', 'deno'
             ]);
 
             // Parse multiple JSON objects (one per line)
@@ -98,7 +99,8 @@ export class YouTubeService {
                 `ytsearch1:${query}`,
                 '--dump-json',
                 '--no-playlist',
-                '--no-download'
+                '--no-download',
+                '--js-runtimes', 'deno'
             ]);
 
             const info = JSON.parse(result.stdout);
@@ -144,6 +146,7 @@ export class YouTubeService {
                 '-o', filePath,
                 '--no-playlist',
                 '--newline',  // Important for progress parsing
+                '--js-runtimes', 'deno',
                 url
             ]);
 
