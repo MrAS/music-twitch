@@ -64,6 +64,32 @@ export function createServer(): express.Application {
         }
     });
 
+    // SSE endpoint for live download progress (no auth for simplicity)
+    app.get('/api/admin/progress', (req, res) => {
+        res.setHeader('Content-Type', 'text/event-stream');
+        res.setHeader('Cache-Control', 'no-cache');
+        res.setHeader('Connection', 'keep-alive');
+        res.flushHeaders();
+
+        // Import progress tracker dynamically to avoid circular deps
+        const { progressTracker } = require('./services/progress');
+
+        // Send current state immediately
+        res.write(`data: ${JSON.stringify(progressTracker.getCurrent())}\n\n`);
+
+        // Listen for updates
+        const onProgress = (data: any) => {
+            res.write(`data: ${JSON.stringify(data)}\n\n`);
+        };
+
+        progressTracker.on('progress', onProgress);
+
+        // Clean up on disconnect
+        req.on('close', () => {
+            progressTracker.off('progress', onProgress);
+        });
+    });
+
     // Protected routes
     app.use('/api/admin', authMiddleware);
 

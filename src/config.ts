@@ -6,6 +6,8 @@ export const config = {
         username: process.env.TWITCH_USERNAME || '',
         token: process.env.TWITCH_TOKEN || '',
         channel: process.env.TWITCH_CHANNEL || '',
+        // Comma-separated list of allowed users (empty = mods only)
+        allowedUsers: (process.env.ALLOWED_USERS || '').split(',').map(u => u.trim().toLowerCase()).filter(u => u),
     },
     core: {
         url: process.env.CORE_URL || 'http://localhost:8080',

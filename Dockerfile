@@ -20,8 +20,11 @@ COPY tsconfig.json ./
 COPY src ./src
 RUN npm install --only=dev && npm run build && npm prune --production
 
-# Copy web dashboard
-COPY web ./web
+# Copy web dashboard (dist folder only - already built static files)
+COPY web/dist ./web/dist
+
+# Copy allowed.json template (will be overwritten by volume mount)
+COPY allowed.json ./allowed.json
 
 # Create directories
 RUN mkdir -p cache

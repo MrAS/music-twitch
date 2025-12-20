@@ -79,27 +79,33 @@ export class TwitchBot {
 
         const args = msg.slice(1).split(' ');
         const command = args.shift()?.toLowerCase();
-        const isMod = tags.mod || tags.username?.toLowerCase() === channel.replace('#', '').toLowerCase();
         const user = tags.username || 'Unknown';
+        const userLower = user.toLowerCase();
+
+        // Check if user is allowed (mod, broadcaster, or in ALLOWED_USERS list)
+        const isBroadcaster = userLower === channel.replace('#', '').toLowerCase();
+        const isMod = tags.mod || isBroadcaster;
+        const isInAllowedList = config.twitch.allowedUsers.length === 0 || config.twitch.allowedUsers.includes(userLower);
+        const isAllowed = isMod || isInAllowedList;
 
         switch (command) {
             case 'play':
-                if (!isMod) return;
+                if (!isAllowed) return;
                 this.logCommand(user, 'play', args.join(' '), 'Play from catalog');
                 this.handlePlay(channel, args.join(' '), user);
                 break;
             case 'playid':
-                if (!isMod) return;
+                if (!isAllowed) return;
                 this.logCommand(user, 'playid', args[0], 'Play by ID');
                 this.handlePlayId(channel, args[0], user);
                 break;
             case 'yt':
-                if (!isMod) return;
+                if (!isAllowed) return;
                 this.handleYouTubeSearch(channel, args.join(' '), user);
                 break;
             case 'yt1': case 'yt2': case 'yt3': case 'yt4': case 'yt5':
             case 'yt6': case 'yt7': case 'yt8': case 'yt9': case 'yt10':
-                if (!isMod) return;
+                if (!isAllowed) return;
                 const num = parseInt(command!.replace('yt', ''));
                 this.handleYouTubeSelect(channel, num, user);
                 break;
@@ -110,13 +116,13 @@ export class TwitchBot {
                 this.handleNowPlaying(channel);
                 break;
             case 'skip':
-                if (!isMod) return;
+                if (!isAllowed) return;
                 this.logCommand(user, 'skip', '', 'Skipped');
                 await this.queue.skip();
                 this.client.say(channel, 'Skipped current track.');
                 break;
             case 'stop':
-                if (!isMod) return;
+                if (!isAllowed) return;
                 this.logCommand(user, 'stop', '', 'Stopped');
                 await this.queue.stop();
                 this.client.say(channel, 'Stopped playback and cleared queue.');

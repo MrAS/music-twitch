@@ -130,17 +130,36 @@ export class YouTubeService {
 
         logger.info(`Downloading YouTube video: ${url}`);
 
+        // Import progress tracker
+        const { progressTracker } = require('./progress');
+
+        // Get video title for progress display
+        const title = this.lastSearchResults.find(r => r.id === videoId)?.title || videoId;
+        progressTracker.start(title);
+
         try {
-            await execa(YT_DLP_PATH, [
+            // Use execa with pipe to track progress
+            const subprocess = execa(YT_DLP_PATH, [
                 '-f', 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
                 '-o', filePath,
                 '--no-playlist',
+                '--newline',  // Important for progress parsing
                 url
             ]);
 
+            // Parse stdout for progress
+            subprocess.stdout?.on('data', (data: Buffer) => {
+                const line = data.toString();
+                progressTracker.parseYtDlpOutput(line);
+            });
+
+            await subprocess;
+
+            progressTracker.complete();
             logger.info(`Download complete: ${filePath}`);
             return filePath;
         } catch (error) {
+            progressTracker.error('Download failed');
             logger.error('YouTube download failed', error);
             throw error;
         }
