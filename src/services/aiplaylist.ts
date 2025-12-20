@@ -6,7 +6,8 @@ const logger = winston.createLogger({
     transports: [new winston.transports.Console()],
 });
 
-const POLLINATIONS_URL = 'https://text.pollinations.ai/openai';
+// Pollinations.ai text generation endpoint
+const POLLINATIONS_URL = 'https://text.pollinations.ai/';
 
 export interface PlaylistRequest {
     description: string;           // Mood/genre description
@@ -36,49 +37,42 @@ export class AIPlaylistService {
 
         logger.info(`Generating AI playlist: "${description}" with ${count} songs (${mode} mode)`);
 
-        const prompt = `You are a music recommendation AI. Generate a playlist of exactly ${count} songs based on this description: "${description}"
+        const prompt = `Generate a music playlist of exactly ${count} songs matching: "${description}"
+
+Return ONLY valid JSON (no markdown, no explanation):
+{"name":"Playlist Name","description":"mood description","songs":[{"searchQuery":"Artist - Song","title":"Song","artist":"Artist"}]}
 
 Rules:
-1. Return ONLY a valid JSON object, no markdown, no explanation
-2. Include popular and well-known songs that match the mood
-3. Mix different artists unless specifically asked for one artist
-4. For Arabic/regional music requests, include authentic artists from that region
-5. The searchQuery should be: "Artist - Song Title" format for best YouTube search results
-
-Return this exact JSON format:
-{
-  "name": "Playlist Name",
-  "description": "Brief description of the playlist mood",
-  "songs": [
-    {"searchQuery": "Artist Name - Song Title", "title": "Song Title", "artist": "Artist Name"},
-    ...
-  ]
-}`;
+- searchQuery format: "Artist - Song Title"
+- Include popular, well-known songs
+- Mix different artists
+- For Arabic music, use authentic regional artists`;
 
         try {
-            const response = await axios.post(POLLINATIONS_URL, {
-                model: 'openai',
-                messages: [
-                    { role: 'system', content: 'You are a music playlist generator. You only respond with valid JSON.' },
-                    { role: 'user', content: prompt }
-                ],
-                temperature: 0.8,
-                max_tokens: 2000
-            }, {
-                timeout: 30000,
-                headers: {
-                    'Content-Type': 'application/json'
+            // Pollinations uses simple GET with URL-encoded prompt
+            const encodedPrompt = encodeURIComponent(prompt);
+            const response = await axios.get(`${POLLINATIONS_URL}${encodedPrompt}`, {
+                timeout: 60000,
+                params: {
+                    model: 'openai',
+                    json: true
                 }
             });
 
-            // Parse the AI response
-            let content = response.data.choices?.[0]?.message?.content || response.data;
+            // Parse the response
+            let content = response.data;
 
-            // If it's a string, try to parse JSON from it
+            // If string, try to parse JSON
             if (typeof content === 'string') {
                 // Remove markdown code blocks if present
                 content = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-                content = JSON.parse(content);
+                // Find JSON object in the response
+                const jsonMatch = content.match(/\{[\s\S]*\}/);
+                if (jsonMatch) {
+                    content = JSON.parse(jsonMatch[0]);
+                } else {
+                    throw new Error('No valid JSON found in response');
+                }
             }
 
             const playlist: GeneratedPlaylist = {
