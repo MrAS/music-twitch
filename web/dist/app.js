@@ -161,8 +161,42 @@ async function loadStatus() {
         document.getElementById('queueLength').textContent = data.queueLength || 0;
         document.getElementById('coreStatus').textContent = data.coreReachable ? '🟢 Reachable' : '🔴 Unreachable';
         document.getElementById('currentPlaying').textContent = data.currentPlaying?.title || 'Nothing playing';
+
+        // Load quality settings
+        loadQuality();
     } catch (err) {
         console.error('Failed to load status', err);
+    }
+}
+
+// Quality Settings
+async function loadQuality() {
+    try {
+        const data = await api('GET', '/quality');
+        const select = document.getElementById('qualitySelect');
+        const infoEl = document.getElementById('qualityInfo');
+
+        if (select && data.current) {
+            select.value = data.current;
+        }
+
+        if (infoEl && data.presets && data.presets[data.current]) {
+            const preset = data.presets[data.current];
+            infoEl.textContent = `${preset.resolution} @ ${preset.videoBitrate}`;
+        }
+    } catch (err) {
+        console.error('Failed to load quality settings', err);
+    }
+}
+
+async function changeQuality(quality) {
+    try {
+        const data = await api('POST', '/quality', { quality });
+        if (data.success) {
+            loadQuality();
+        }
+    } catch (err) {
+        alert('Failed to change quality');
     }
 }
 

@@ -16,6 +16,7 @@ export interface AppServices {
     queue: any;
     youtube: any;
     restreamer: any;
+    streamer: any;
     twitchBot: any;
 }
 
@@ -248,6 +249,29 @@ export function createServer(): express.Application {
 
         queue.enqueue(item, 'Admin');
         res.json({ success: true, title: item.title });
+    });
+
+    // Quality settings endpoints
+    app.get('/api/admin/quality', (req, res) => {
+        const { streamer } = getServices();
+        res.json({
+            current: streamer.getQuality(),
+            presets: streamer.getPresets()
+        });
+    });
+
+    app.post('/api/admin/quality', (req, res) => {
+        const { streamer } = getServices();
+        const { quality } = req.body;
+        if (!quality) {
+            return res.status(400).json({ error: 'Quality preset required' });
+        }
+        const success = streamer.setQuality(quality);
+        if (success) {
+            res.json({ success: true, current: quality });
+        } else {
+            res.status(400).json({ error: 'Invalid quality preset' });
+        }
     });
 
     // Twitch logs

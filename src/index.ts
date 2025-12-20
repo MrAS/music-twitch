@@ -23,6 +23,7 @@ async function main() {
         queue,
         youtube,
         restreamer,
+        streamer,
         twitchBot: bot
     });
 

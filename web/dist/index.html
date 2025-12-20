@@ -69,6 +69,22 @@
                         <span id="downloadPercent">0%</span>
                     </div>
                 </div>
+
+                <!-- Quality Settings Section -->
+                <div class="quality-section">
+                    <h3>🎬 Stream Quality</h3>
+                    <div class="quality-controls">
+                        <select id="qualitySelect" onchange="changeQuality(this.value)">
+                            <option value="480p">480p (SD)</option>
+                            <option value="720p" selected>720p (HD)</option>
+                            <option value="1080p">1080p (Full HD)</option>
+                            <option value="4k">4K (Ultra HD)</option>
+                            <option value="8k">8K</option>
+                            <option value="source">Source (No Re-encode)</option>
+                        </select>
+                        <span id="qualityInfo" class="quality-info"></span>
+                    </div>
+                </div>
             </section>
 
             <!-- Queue Page -->
