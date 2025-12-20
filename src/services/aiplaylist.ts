@@ -6,10 +6,6 @@ const logger = winston.createLogger({
     transports: [new winston.transports.Console()],
 });
 
-// Pollinations.ai API with token
-const POLLINATIONS_URL = 'https://text.pollinations.ai/openai';
-const API_TOKEN = process.env.POLLINATIONS_TOKEN || '25OrlbnDDRGp7R3s';
-
 export interface PlaylistRequest {
     description: string;
     count: number;
@@ -35,28 +31,21 @@ export class AIPlaylistService {
 
         logger.info(`Generating AI playlist: "${description}" with ${count} songs`);
 
-        const prompt = `Create a JSON playlist of ${count} songs for "${description}". Return ONLY valid JSON: {"name":"Playlist Name","songs":[{"searchQuery":"Artist - Song","title":"Song","artist":"Artist"}]}`;
+        // Simple prompt as URL path - pollinations.ai format
+        const prompt = `Create JSON playlist of ${count} songs for "${description}". Return ONLY: {"name":"Name","songs":[{"searchQuery":"Artist - Song","title":"Song","artist":"Artist"}]}`;
 
         try {
-            // Use token authentication
-            const url = `${POLLINATIONS_URL}?token=${API_TOKEN}`;
+            // Use simple GET request with prompt as path
+            const url = `https://text.pollinations.ai/${encodeURIComponent(prompt)}`;
 
-            const response = await axios.post(url, {
-                model: 'openai',
-                messages: [
-                    { role: 'system', content: 'You are a music playlist generator. Return only valid JSON.' },
-                    { role: 'user', content: prompt }
-                ],
-                temperature: 0.8
-            }, {
+            const response = await axios.get(url, {
                 timeout: 60000,
                 headers: {
-                    'Content-Type': 'application/json',
                     'User-Agent': 'TwitchMusicBot/1.0'
                 }
             });
 
-            let content = response.data?.choices?.[0]?.message?.content || response.data;
+            let content = response.data;
 
             if (typeof content === 'string') {
                 content = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
@@ -64,6 +53,7 @@ export class AIPlaylistService {
                 if (jsonMatch) {
                     content = JSON.parse(jsonMatch[0]);
                 } else {
+                    logger.error(`No JSON in response: ${content.substring(0, 200)}`);
                     throw new Error('No valid JSON found');
                 }
             }
