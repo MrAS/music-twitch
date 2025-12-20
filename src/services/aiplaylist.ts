@@ -35,8 +35,8 @@ export class AIPlaylistService {
         const prompt = `Create JSON playlist of ${count} songs for "${description}". Return ONLY: {"name":"Name","songs":[{"searchQuery":"Artist - Song","title":"Song","artist":"Artist"}]}`;
 
         try {
-            // Use simple GET request with prompt as path
-            const url = `https://text.pollinations.ai/${encodeURIComponent(prompt)}`;
+            // Use simple GET request with prompt as path and json param
+            const url = `https://text.pollinations.ai/${encodeURIComponent(prompt)}?json=true`;
 
             const response = await axios.get(url, {
                 timeout: 60000,
