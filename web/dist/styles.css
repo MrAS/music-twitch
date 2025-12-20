@@ -513,3 +513,24 @@ td button {
 .success:hover {
     background: #2ecc71 !important;
 }
+
+.autoplay-toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 1rem;
+    cursor: pointer;
+}
+
+.autoplay-toggle input {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+}
+
+#autoPlaylistStatus {
+    background: rgba(231, 76, 60, 0.2);
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    border: 1px solid #e74c3c;
+}

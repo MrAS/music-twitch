@@ -258,6 +258,54 @@ async function queuePlaylist() {
     }
 }
 
+async function toggleAutoPlaylist() {
+    const checkbox = document.getElementById('autoPlaylistToggle');
+    const description = document.getElementById('playlistDescription').value;
+
+    if (checkbox.checked) {
+        if (!description) {
+            checkbox.checked = false;
+            alert('Please enter a mood description first');
+            return;
+        }
+
+        try {
+            await api('POST', '/autoplaylist/enable', { description, songsPerBatch: 3 });
+            showAutoPlaylistStatus(description);
+        } catch (err) {
+            checkbox.checked = false;
+            alert('Failed to enable non-stop mode');
+        }
+    } else {
+        await disableAutoPlaylist();
+    }
+}
+
+async function disableAutoPlaylist() {
+    try {
+        await api('POST', '/autoplaylist/disable');
+        document.getElementById('autoPlaylistToggle').checked = false;
+        document.getElementById('autoPlaylistStatus').style.display = 'none';
+    } catch (err) {
+        alert('Failed to disable non-stop mode');
+    }
+}
+
+function showAutoPlaylistStatus(description) {
+    document.getElementById('autoPlaylistDesc').textContent = description;
+    document.getElementById('autoPlaylistStatus').style.display = 'block';
+}
+
+async function loadAutoPlaylistStatus() {
+    try {
+        const data = await api('GET', '/autoplaylist');
+        if (data.enabled) {
+            document.getElementById('autoPlaylistToggle').checked = true;
+            showAutoPlaylistStatus(data.description);
+        }
+    } catch (err) { }
+}
+
 // Queue
 async function loadQueue() {
     try {

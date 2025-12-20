@@ -324,6 +324,32 @@ export function createServer(): express.Application {
         res.json({ success: true, queued });
     });
 
+    // Auto-playlist endpoints
+    app.get('/api/admin/autoplaylist', (req, res) => {
+        const { queue } = getServices();
+        res.json(queue.getAutoPlaylistInfo());
+    });
+
+    app.post('/api/admin/autoplaylist/enable', (req, res) => {
+        const { queue, youtube } = getServices();
+        const { description, songsPerBatch = 3 } = req.body;
+
+        if (!description) {
+            return res.status(400).json({ error: 'Description required' });
+        }
+
+        // Set YouTube service reference
+        queue.setYouTubeService(youtube);
+        queue.enableAutoPlaylist(description, songsPerBatch);
+        res.json({ success: true, description, songsPerBatch });
+    });
+
+    app.post('/api/admin/autoplaylist/disable', (req, res) => {
+        const { queue } = getServices();
+        queue.disableAutoPlaylist();
+        res.json({ success: true });
+    });
+
     // Twitch logs
     app.get('/api/admin/twitch/logs', (req, res) => {
         const { twitchBot } = getServices();

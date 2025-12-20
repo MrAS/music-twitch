@@ -103,6 +103,14 @@
                         <h4 id="playlistName"></h4>
                         <ul id="playlistSongs"></ul>
                         <button onclick="queuePlaylist()" class="success">▶️ Queue All</button>
+                        <label class="autoplay-toggle">
+                            <input type="checkbox" id="autoPlaylistToggle" onchange="toggleAutoPlaylist()">
+                            <span>🔁 Non-Stop Mode (auto-generate when queue empty)</span>
+                        </label>
+                    </div>
+                    <div id="autoPlaylistStatus" style="display: none; margin-top: 1rem;">
+                        <span>🔄 Non-Stop Active: <strong id="autoPlaylistDesc"></strong></span>
+                        <button onclick="disableAutoPlaylist()" class="danger" style="margin-left: 1rem;">Stop</button>
                     </div>
                     <div id="playlistLoading" style="display: none;">
                         <span>🔄 Generating playlist...</span>
