@@ -11,6 +11,9 @@ const logger = winston.createLogger({
     transports: [new winston.transports.Console()],
 });
 
+// Use YT_DLP_PATH env var or default to system 'yt-dlp'
+const YT_DLP_PATH = process.env.YT_DLP_PATH || 'yt-dlp';
+
 export class DownloaderService {
     constructor() {
         fs.ensureDirSync(config.system.cacheDir);
@@ -32,15 +35,13 @@ export class DownloaderService {
             const filePath = path.resolve(config.system.cacheDir, filename);
 
             if (fs.existsSync(filePath)) {
-                // Simple check: exists. Could add expiration logic here.
                 logger.info(`File cached: ${filePath}`);
                 return filePath;
             }
 
             logger.info(`Downloading ${item.key} from ${item.source.url}...`);
             try {
-                // yt-dlp -f 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best' -o filePath
-                await execa('yt-dlp', [
+                await execa(YT_DLP_PATH, [
                     '-f', 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
                     '-o', filePath,
                     '--no-playlist',

@@ -29,6 +29,15 @@ export class CatalogService {
         }
     }
 
+    private save() {
+        try {
+            fs.writeJSONSync(config.system.allowedCatalogPath, this.items, { spaces: 2 });
+            logger.info('Catalog saved.');
+        } catch (error) {
+            logger.error('Failed to save catalog', error);
+        }
+    }
+
     public getByKey(key: string): AllowedItem | undefined {
         return this.items.find((item) => item.key.toLowerCase() === key.toLowerCase());
     }
@@ -39,13 +48,38 @@ export class CatalogService {
 
         return this.items.filter((item) => {
             const text = (item.key + ' ' + item.title).toLowerCase();
-            // rigorous whitelist: must contain all search terms? or just match score?
-            // simple "all terms present" logic
             return terms.every((term) => text.includes(term));
         });
     }
 
     public getAll(): AllowedItem[] {
         return this.items;
+    }
+
+    public addItem(item: AllowedItem): void {
+        const existing = this.getByKey(item.key);
+        if (existing) {
+            throw new Error(`Item with key "${item.key}" already exists`);
+        }
+        this.items.push(item);
+        this.save();
+    }
+
+    public updateItem(key: string, updates: Partial<AllowedItem>): void {
+        const index = this.items.findIndex(item => item.key.toLowerCase() === key.toLowerCase());
+        if (index === -1) {
+            throw new Error(`Item with key "${key}" not found`);
+        }
+        this.items[index] = { ...this.items[index], ...updates };
+        this.save();
+    }
+
+    public deleteItem(key: string): void {
+        const index = this.items.findIndex(item => item.key.toLowerCase() === key.toLowerCase());
+        if (index === -1) {
+            throw new Error(`Item with key "${key}" not found`);
+        }
+        this.items.splice(index, 1);
+        this.save();
     }
 }

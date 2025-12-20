@@ -16,5 +16,12 @@ export const config = {
     system: {
         cacheDir: process.env.CACHE_DIR || './cache',
         allowedCatalogPath: process.env.ALLOWED_CATALOG_PATH || './allowed.json',
+        standbyVideo: process.env.STANDBY_VIDEO || '', // Path or URL to loop when queue is empty
+    },
+    admin: {
+        username: process.env.ADMIN_USERNAME || 'admin',
+        password: process.env.ADMIN_PASSWORD || 'admin123',
+        jwtSecret: process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-in-production',
+        port: parseInt(process.env.API_PORT || '3000'),
     }
 };

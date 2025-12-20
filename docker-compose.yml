@@ -1,19 +1,39 @@
 version: '3.8'
 
 services:
-  bot:
+  twitch-music-bot:
     build: .
-    container_name: twitch-restreamer-bot
+    container_name: twitch-music-bot
     restart: unless-stopped
+    ports:
+      - "3000:3000"
     volumes:
       - ./cache:/app/cache
-      - ./allowed.json:/app/allowed.json
+      - ./allowed.json:/app/allowed.json:rw
+    env_file:
+      - .env
     environment:
-      - TWITCH_USERNAME=mybot
-      - TWITCH_TOKEN=oauth:token
-      - TWITCH_CHANNEL=mychannel
-      - CORE_URL=http://restreamer:8080
-      - CORE_USER=admin
-      - CORE_PASS=password
       - CACHE_DIR=/app/cache
       - ALLOWED_CATALOG_PATH=/app/allowed.json
+      - API_PORT=3000
+    networks:
+      - twitch-net
+
+  # Optional: Uncomment if you want to run Restreamer in the same stack
+  # restreamer:
+  #   image: datarhei/restreamer:latest
+  #   container_name: restreamer
+  #   restart: unless-stopped
+  #   ports:
+  #     - "8080:8080"
+  #     - "1935:1935"
+  #     - "6000:6000/udp"
+  #   volumes:
+  #     - ./restreamer-config:/core/config
+  #     - ./restreamer-data:/core/data
+  #   networks:
+  #     - twitch-net
+
+networks:
+  twitch-net:
+    driver: bridge

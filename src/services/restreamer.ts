@@ -67,36 +67,29 @@ export class RestreamerService {
         await this.request('put', `/api/v3/process/${config.core.processId}/command`, { command: 'start' });
     }
 
-    public async updateProcessConfig(filePath: string) {
-        // 1. Get current config to preserve output settings
-        // Note: If process doesn't exist, this fails. We assume process exists or we need to create it.
-        // For simplicity, we assume process exists with ID "twitchplayer".
-
-        // We need to fetch the process config first.
-        // However, the prompt implies controlling an existing system or setting up one.
-        // We will attempt to GET, then PUT.
-
+    public async updateProcessConfig(filePath: string, loop: boolean = false) {
+        // Get current config to preserve output settings
         let currentConfig: any = {};
         try {
             const res = await this.request('get', `/api/v3/process/${config.core.processId}`);
             currentConfig = res.data;
         } catch (e) {
-            logger.warn('Process not found, creating new config might be needed logic here.');
+            logger.warn('Process not found, creating new config might be needed.');
         }
 
-        // Prepare input config for ffmpeg reading a file
+        // Prepare input config for ffmpeg
+        const inputOptions = ["-re"]; // Read at native frame rate
+        if (loop) {
+            inputOptions.unshift("-stream_loop", "-1"); // Infinite loop
+        }
+
         const newInput = [
             {
                 "id": "input_0",
                 "address": `file://${filePath}`,
-                "options": [
-                    "-re" // Read input at native frame rate
-                ]
+                "options": inputOptions
             }
         ];
-
-        // We assume the user has set up the output (RTMP ingest) on the Restreamer side.
-        // We only swap the input.
 
         const newConfig = {
             ...currentConfig,
@@ -107,6 +100,6 @@ export class RestreamerService {
         };
 
         await this.request('put', `/api/v3/process/${config.core.processId}`, newConfig);
-        logger.info(`Updated process config to play: ${filePath}`);
+        logger.info(`Updated process config to play: ${filePath}${loop ? ' (looping)' : ''}`);
     }
 }
