@@ -6,8 +6,8 @@ const logger = winston.createLogger({
     transports: [new winston.transports.Console()],
 });
 
-// Pollinations.ai OpenAI-compatible endpoint
-const POLLINATIONS_URL = 'https://text.pollinations.ai/v1/chat/completions';
+// Pollinations.ai simple text endpoint
+const POLLINATIONS_URL = 'https://text.pollinations.ai/';
 
 export interface PlaylistRequest {
     description: string;           // Mood/genre description
@@ -37,33 +37,27 @@ export class AIPlaylistService {
 
         logger.info(`Generating AI playlist: "${description}" with ${count} songs (${mode} mode)`);
 
-        const prompt = `Generate a music playlist of exactly ${count} songs for: "${description}"
-
-Return ONLY a valid JSON object with this exact structure (no markdown):
-{"name":"Playlist Name","description":"mood description","songs":[{"searchQuery":"Artist - Song Title","title":"Song Title","artist":"Artist Name"}]}
-
-Rules:
-- searchQuery must be "Artist - Song Title" format for YouTube search
-- Include popular, well-known songs that match the mood
-- For Arabic music requests, include authentic Arabic artists`;
+        // Simple prompt for direct text endpoint
+        const prompt = `Create a JSON playlist of ${count} songs for "${description}". Format: {"name":"Playlist Name","songs":[{"searchQuery":"Artist - Song","title":"Song","artist":"Artist"}]}`;
 
         try {
-            const response = await axios.post(POLLINATIONS_URL, {
-                model: 'openai',
-                messages: [
-                    { role: 'system', content: 'You are a music playlist generator. Return only valid JSON, no markdown or explanation.' },
-                    { role: 'user', content: prompt }
-                ],
-                temperature: 0.8
-            }, {
+            // Use the simple text endpoint with encoded prompt
+            const url = `${POLLINATIONS_URL}${encodeURIComponent(prompt)}?model=openai&json=true`;
+            logger.info(`Calling: ${url.substring(0, 100)}...`);
+
+            const response = await axios.get(url, {
                 timeout: 60000,
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Accept': 'text/plain, application/json',
+                    'User-Agent': 'TwitchMusicBot/1.0'
                 }
             });
 
-            // Get content from OpenAI-style response
-            let content = response.data?.choices?.[0]?.message?.content || response.data;
+            logger.info(`Response type: ${typeof response.data}`);
+            logger.info(`Response preview: ${JSON.stringify(response.data).substring(0, 200)}`);
+
+            // Get content from response
+            let content = response.data;
 
             // If string, try to parse JSON
             if (typeof content === 'string') {
@@ -74,6 +68,7 @@ Rules:
                 if (jsonMatch) {
                     content = JSON.parse(jsonMatch[0]);
                 } else {
+                    logger.error(`No JSON found in: ${content.substring(0, 300)}`);
                     throw new Error('No valid JSON found in response');
                 }
             }
@@ -93,7 +88,11 @@ Rules:
             return playlist;
 
         } catch (error: any) {
-            logger.error('AI playlist generation failed:', error.message);
+            logger.error(`AI playlist generation failed: ${error.message}`);
+            if (error.response) {
+                logger.error(`Response status: ${error.response.status}`);
+                logger.error(`Response data: ${JSON.stringify(error.response.data).substring(0, 500)}`);
+            }
             throw new Error(`Failed to generate playlist: ${error.message}`);
         }
     }
