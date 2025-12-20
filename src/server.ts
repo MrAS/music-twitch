@@ -226,6 +226,30 @@ export function createServer(): express.Application {
         }
     });
 
+    // Play a local file from cache
+    app.post('/api/admin/cache/:filename/play', async (req, res) => {
+        const fs = await import('fs-extra');
+        const { queue } = getServices();
+        const filePath = path.resolve(config.system.cacheDir, req.params.filename);
+
+        if (!await fs.pathExists(filePath)) {
+            return res.status(404).json({ error: 'File not found' });
+        }
+
+        // Create a temporary item to enqueue
+        const item = {
+            key: req.params.filename,
+            title: req.params.filename.replace(/\.[^/.]+$/, ''), // Remove extension
+            source: {
+                type: 'local_file' as const,
+                path: filePath
+            }
+        };
+
+        queue.enqueue(item, 'Admin');
+        res.json({ success: true, title: item.title });
+    });
+
     // Twitch logs
     app.get('/api/admin/twitch/logs', (req, res) => {
         const { twitchBot } = getServices();

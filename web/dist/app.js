@@ -266,7 +266,10 @@ async function loadCache() {
                 <td>${file.name}</td>
                 <td>${formatSize(file.size)}</td>
                 <td>${new Date(file.modified).toLocaleString()}</td>
-                <td><button onclick="deleteCacheFile('${file.name}')" class="danger">🗑️</button></td>
+                <td>
+                    <button onclick="playCacheFile('${file.name}')">▶️</button>
+                    <button onclick="deleteCacheFile('${file.name}')" class="danger">🗑️</button>
+                </td>
             </tr>
         `).join('');
     } catch (err) {
@@ -278,6 +281,17 @@ function formatSize(bytes) {
     if (bytes < 1024) return bytes + ' B';
     if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
     return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+}
+
+async function playCacheFile(filename) {
+    try {
+        const result = await api('POST', `/cache/${encodeURIComponent(filename)}/play`);
+        alert(`Playing: ${result.title}`);
+        loadQueue();
+        loadStatus();
+    } catch (err) {
+        alert('Failed to play file');
+    }
 }
 
 async function deleteCacheFile(filename) {

@@ -1,18 +1,10 @@
 [
-    {
-        "key": "lofi-hip-hop",
-        "title": "Lofi Hip Hop Mix",
-        "source": {
-            "type": "youtube_url",
-            "url": "https://www.youtube.com/watch?v=jfKfPfyJRdk"
-        }
-    },
-    {
-        "key": "intro",
-        "title": "Stream Intro",
-        "source": {
-            "type": "local_file",
-            "path": "/media/intro.mp4"
-        }
+  {
+    "key": "lofi-hip-hop",
+    "title": "Lofi Hip Hop Mix",
+    "source": {
+      "type": "youtube_url",
+      "url": "https://www.youtube.com/watch?v=jfKfPfyJRdk"
     }
+  }
 ]
