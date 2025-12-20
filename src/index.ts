@@ -1,5 +1,6 @@
 import { CatalogService } from './services/catalog';
 import { DownloaderService } from './services/downloader';
+import { StreamerService } from './services/streamer';
 import { RestreamerService } from './services/restreamer';
 import { QueueService } from './services/queue';
 import { YouTubeService } from './services/youtube';
@@ -10,8 +11,9 @@ import { config } from './config';
 async function main() {
     const catalog = new CatalogService();
     const downloader = new DownloaderService();
-    const restreamer = new RestreamerService();
-    const queue = new QueueService(downloader, restreamer);
+    const streamer = new StreamerService();
+    const restreamer = new RestreamerService(); // Keep for API access
+    const queue = new QueueService(downloader, streamer);
     const youtube = new YouTubeService();
     const bot = new TwitchBot(catalog, queue, youtube);
 

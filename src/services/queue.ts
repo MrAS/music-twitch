@@ -1,6 +1,6 @@
 import { EnqueuedItem, AllowedItem } from '../types';
 import { DownloaderService } from './downloader';
-import { RestreamerService } from './restreamer';
+import { StreamerService } from './streamer';
 import { config } from '../config';
 import winston from 'winston';
 
@@ -18,7 +18,7 @@ export class QueueService {
 
     constructor(
         private downloader: DownloaderService,
-        private restreamer: RestreamerService
+        private streamer: StreamerService
     ) {
         // Start standby video on initialization if configured
         if (config.system.standbyVideo) {
@@ -49,52 +49,58 @@ export class QueueService {
         return this.isPlayingStandby;
     }
 
-    public async stop() {
-        this.clearTimer();
-        this.queue = [];
-        this.current = null;
-        this.isProcessing = false;
-        this.isPlayingStandby = false;
-        await this.restreamer.cancelProcess();
-        logger.info('Stopped playback and cleared queue.');
-    }
-
-    public async skip() {
-        logger.info('Skipping current track...');
-        await this.playNext();
-    }
-
-    private clearTimer() {
+    public async skip(): Promise<void> {
         if (this.timer) {
             clearTimeout(this.timer);
             this.timer = null;
         }
+        await this.streamer.stop();
+        this.current = null;
+        await this.playNext();
     }
 
-    private async playStandby() {
+    public async stop(): Promise<void> {
+        if (this.timer) {
+            clearTimeout(this.timer);
+            this.timer = null;
+        }
+        await this.streamer.stop();
+        this.current = null;
+        this.queue = [];
+        this.isPlayingStandby = false;
+    }
+
+    public removeFromQueue(index: number): boolean {
+        if (index >= 0 && index < this.queue.length) {
+            this.queue.splice(index, 1);
+            return true;
+        }
+        return false;
+    }
+
+    private async playStandby(): Promise<void> {
         if (!config.system.standbyVideo) {
             logger.info('No standby video configured. Stream will stop when queue is empty.');
-            await this.restreamer.cancelProcess();
             return;
         }
 
+        this.isPlayingStandby = true;
+        logger.info('Playing standby video (looping)');
+
         try {
-            this.isPlayingStandby = true;
-            logger.info('Playing standby video...');
-
-            // Update to standby video (loop infinitely)
-            await this.restreamer.updateProcessConfig(config.system.standbyVideo, true);
-            await this.restreamer.startProcess();
-
+            // Stream standby video with loop enabled
+            await this.streamer.streamFile(config.system.standbyVideo, true);
         } catch (error) {
             logger.error('Failed to play standby video', error);
-            this.isPlayingStandby = false;
         }
     }
 
-    private async playNext() {
-        this.clearTimer();
+    public async playNext(): Promise<void> {
+        if (this.isProcessing) return;
         this.isProcessing = true;
+
+        // Stop current stream
+        await this.streamer.stop();
 
         if (this.queue.length === 0) {
             this.current = null;
@@ -122,13 +128,11 @@ export class QueueService {
             const durationSec = await this.downloader.getDuration(filePath);
             logger.info(`Duration: ${durationSec}s`);
 
-            // 3. Update Restreamer
-            await this.restreamer.updateProcessConfig(filePath, false);
+            // 3. Stream via FFmpeg
+            await this.streamer.streamFile(filePath, false);
+            logger.info('Stream started successfully');
 
-            // 4. Start Process
-            await this.restreamer.startProcess();
-
-            // 5. Set Timer (add small buffer)
+            // 4. Set Timer (add small buffer)
             this.timer = setTimeout(() => {
                 this.playNext();
             }, (durationSec + 2) * 1000);
@@ -138,6 +142,7 @@ export class QueueService {
         } catch (error) {
             logger.error(`Failed to play ${nextItem.key}`, error);
             this.current = null;
+            this.isProcessing = false;
             this.playNext();
         }
     }
