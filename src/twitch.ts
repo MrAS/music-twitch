@@ -3,6 +3,7 @@ import { config } from './config';
 import { CatalogService } from './services/catalog';
 import { QueueService } from './services/queue';
 import { YouTubeService } from './services/youtube';
+import { AIPlaylistService } from './services/aiplaylist';
 import { AllowedItem, EnqueuedItem } from './types';
 import winston from 'winston';
 
@@ -24,11 +25,14 @@ export class TwitchBot {
     private connected: boolean = false;
     private commandLogs: CommandLog[] = [];
 
+    private aiPlaylist: AIPlaylistService;
+
     constructor(
         private catalog: CatalogService,
         private queue: QueueService,
         private youtube: YouTubeService
     ) {
+        this.aiPlaylist = new AIPlaylistService();
         this.client = new tmi.Client({
             options: { debug: true },
             identity: {
@@ -126,6 +130,10 @@ export class TwitchBot {
                 this.logCommand(user, 'stop', '', 'Stopped');
                 await this.queue.stop();
                 this.client.say(channel, 'Stopped playback and cleared queue.');
+                break;
+            case 'playlist':
+                if (!isAllowed) return;
+                this.handleAIPlaylist(channel, args.join(' '), user);
                 break;
         }
     }
@@ -258,6 +266,60 @@ export class TwitchBot {
             this.client.say(channel, `Now: ${current.title} (by @${current.requestedBy})`);
         } else {
             this.client.say(channel, 'Nothing playing.');
+        }
+    }
+
+    private async handleAIPlaylist(channel: string, description: string, user: string) {
+        if (!description) {
+            this.client.say(channel, 'Usage: @playlist <mood/description> - e.g. @playlist relaxing arabic music');
+            return;
+        }
+
+        this.logCommand(user, 'playlist', description, 'AI Playlist');
+        this.client.say(channel, `🤖 Generating playlist for: "${description}"...`);
+
+        try {
+            // Parse count from description (e.g., "5 arabic songs")
+            const countMatch = description.match(/^(\d+)\s+/);
+            const count = countMatch ? Math.min(parseInt(countMatch[1]), 10) : 5;
+            const cleanDesc = countMatch ? description.replace(/^\d+\s+/, '') : description;
+
+            const playlist = await this.aiPlaylist.generatePlaylist({
+                description: cleanDesc,
+                count,
+                mode: 'shuffle'
+            });
+
+            this.client.say(channel, `🎵 ${playlist.name} (${playlist.songs.length} songs)`);
+
+            // Queue the first song immediately, rest will be searched/downloaded
+            let queuedCount = 0;
+            for (const song of playlist.songs.slice(0, 5)) { // Limit to 5 to avoid rate limits
+                try {
+                    // Search YouTube for the song
+                    const result = await this.youtube.search(song.searchQuery);
+                    if (result) {
+                        const filePath = await this.youtube.ensureDownloaded(result.id, result.url);
+
+                        const item: AllowedItem = {
+                            key: `yt_${result.id}`,
+                            title: result.title,
+                            source: { type: 'local_file', path: filePath }
+                        };
+
+                        this.queue.enqueue(item, user);
+                        queuedCount++;
+                    }
+                } catch (err) {
+                    logger.warn(`Failed to queue: ${song.searchQuery}`);
+                }
+            }
+
+            this.client.say(channel, `✅ Queued ${queuedCount} songs from "${playlist.name}"`);
+
+        } catch (error) {
+            logger.error('AI playlist failed', error);
+            this.client.say(channel, 'Failed to generate playlist. Try again.');
         }
     }
 }

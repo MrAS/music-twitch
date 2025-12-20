@@ -85,6 +85,29 @@
                         <span id="qualityInfo" class="quality-info"></span>
                     </div>
                 </div>
+
+                <!-- AI Playlist Section -->
+                <div class="ai-playlist-section">
+                    <h3>🤖 AI Playlist Generator</h3>
+                    <div class="playlist-form">
+                        <input type="text" id="playlistDescription"
+                            placeholder="Describe your mood (e.g., relaxing arabic music, 90s rock hits)" />
+                        <select id="playlistCount">
+                            <option value="3">3 songs</option>
+                            <option value="5" selected>5 songs</option>
+                            <option value="10">10 songs</option>
+                        </select>
+                        <button onclick="generatePlaylist()">🎵 Generate</button>
+                    </div>
+                    <div id="playlistResult" style="display: none;">
+                        <h4 id="playlistName"></h4>
+                        <ul id="playlistSongs"></ul>
+                        <button onclick="queuePlaylist()" class="success">▶️ Queue All</button>
+                    </div>
+                    <div id="playlistLoading" style="display: none;">
+                        <span>🔄 Generating playlist...</span>
+                    </div>
+                </div>
             </section>
 
             <!-- Queue Page -->

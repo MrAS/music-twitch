@@ -443,3 +443,73 @@ td button {
     color: var(--text-secondary);
     font-size: 0.9rem;
 }
+
+/* AI Playlist Generator */
+.ai-playlist-section {
+    background: var(--bg-card);
+    padding: 1.5rem;
+    border-radius: 12px;
+    margin-top: 1.5rem;
+    border-left: 4px solid #e91e63;
+}
+
+.ai-playlist-section h3 {
+    margin-bottom: 1rem;
+    color: #e91e63;
+}
+
+.playlist-form {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-bottom: 1rem;
+}
+
+.playlist-form input {
+    flex: 1;
+    min-width: 200px;
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg-dark);
+    color: var(--text);
+}
+
+.playlist-form select {
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg-dark);
+    color: var(--text);
+}
+
+#playlistResult {
+    margin-top: 1rem;
+}
+
+#playlistResult h4 {
+    margin-bottom: 0.5rem;
+    color: #e91e63;
+}
+
+#playlistSongs {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 1rem 0;
+}
+
+#playlistSongs li {
+    padding: 0.5rem;
+    background: var(--bg-dark);
+    margin-bottom: 0.25rem;
+    border-radius: 4px;
+    font-size: 0.9rem;
+}
+
+.success {
+    background: #27ae60 !important;
+}
+
+.success:hover {
+    background: #2ecc71 !important;
+}

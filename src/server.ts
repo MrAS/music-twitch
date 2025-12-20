@@ -274,6 +274,56 @@ export function createServer(): express.Application {
         }
     });
 
+    // AI Playlist endpoints
+    app.post('/api/admin/playlist/generate', async (req, res) => {
+        const { description, count = 5, mode = 'shuffle' } = req.body;
+        if (!description) {
+            return res.status(400).json({ error: 'Description required' });
+        }
+
+        try {
+            const { AIPlaylistService } = await import('./services/aiplaylist');
+            const aiPlaylist = new AIPlaylistService();
+            const playlist = await aiPlaylist.generatePlaylist({
+                description,
+                count: Math.min(count, 10),
+                mode
+            });
+            res.json(playlist);
+        } catch (error: any) {
+            res.status(500).json({ error: error.message || 'Failed to generate playlist' });
+        }
+    });
+
+    app.post('/api/admin/playlist/queue', async (req, res) => {
+        const { songs } = req.body;
+        const { queue, youtube } = getServices();
+
+        if (!songs || !Array.isArray(songs)) {
+            return res.status(400).json({ error: 'Songs array required' });
+        }
+
+        let queued = 0;
+        for (const song of songs.slice(0, 10)) {
+            try {
+                const result = await youtube.search(song.searchQuery);
+                if (result) {
+                    const filePath = await youtube.ensureDownloaded(result.id, result.url);
+                    queue.enqueue({
+                        key: `yt_${result.id}`,
+                        title: result.title,
+                        source: { type: 'local_file', path: filePath }
+                    }, 'Admin (AI Playlist)');
+                    queued++;
+                }
+            } catch (err) {
+                // Continue with next song
+            }
+        }
+
+        res.json({ success: true, queued });
+    });
+
     // Twitch logs
     app.get('/api/admin/twitch/logs', (req, res) => {
         const { twitchBot } = getServices();

@@ -200,6 +200,64 @@ async function changeQuality(quality) {
     }
 }
 
+// AI Playlist Generator
+let generatedPlaylist = null;
+
+async function generatePlaylist() {
+    const description = document.getElementById('playlistDescription').value;
+    const count = document.getElementById('playlistCount').value;
+
+    if (!description) {
+        alert('Please enter a mood description');
+        return;
+    }
+
+    const resultDiv = document.getElementById('playlistResult');
+    const loadingDiv = document.getElementById('playlistLoading');
+
+    resultDiv.style.display = 'none';
+    loadingDiv.style.display = 'block';
+
+    try {
+        const data = await api('POST', '/playlist/generate', {
+            description,
+            count: parseInt(count),
+            mode: 'shuffle'
+        });
+
+        generatedPlaylist = data;
+
+        document.getElementById('playlistName').textContent = '🎵 ' + data.name;
+        const songsList = document.getElementById('playlistSongs');
+        songsList.innerHTML = data.songs.map((song, i) =>
+            `<li>${i + 1}. ${song.artist ? song.artist + ' - ' : ''}${song.title}</li>`
+        ).join('');
+
+        loadingDiv.style.display = 'none';
+        resultDiv.style.display = 'block';
+
+    } catch (err) {
+        loadingDiv.style.display = 'none';
+        alert('Failed to generate playlist: ' + (err.message || 'Unknown error'));
+    }
+}
+
+async function queuePlaylist() {
+    if (!generatedPlaylist || !generatedPlaylist.songs) {
+        alert('No playlist to queue');
+        return;
+    }
+
+    try {
+        const data = await api('POST', '/playlist/queue', {
+            songs: generatedPlaylist.songs
+        });
+        alert(`Queued ${data.queued} songs! Check the Queue page.`);
+    } catch (err) {
+        alert('Failed to queue playlist');
+    }
+}
+
 // Queue
 async function loadQueue() {
     try {
