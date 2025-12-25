@@ -39,7 +39,7 @@ export class DownloaderService {
 
         if (item.source.type === 'youtube_url') {
             if (!item.source.url) throw new Error('YouTube URL missing');
-            const filename = `${item.key}.mp4`;
+            const filename = `${item.key}.mp3`;
             const filePath = path.resolve(config.system.cacheDir, filename);
 
             if (fs.existsSync(filePath)) {
@@ -47,10 +47,12 @@ export class DownloaderService {
                 return filePath;
             }
 
-            logger.info(`Downloading ${item.key} from ${item.source.url}...`);
+            logger.info(`Downloading ${item.key} from ${item.source.url} (audio-only)...`);
             try {
                 await execa(YT_DLP_PATH, [
-                    '-f', 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
+                    '-x',                    // Extract audio only
+                    '--audio-format', 'mp3', // Convert to MP3
+                    '--audio-quality', '0',  // Best audio quality (VBR ~245kbps)
                     '-o', filePath,
                     '--no-playlist',
                     item.source.url
