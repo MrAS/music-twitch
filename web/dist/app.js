@@ -359,13 +359,17 @@ async function loadStatus() {
     try {
         const data = await api('GET', '/status');
         document.getElementById('botStatus').textContent = data.botConnected ? '🟢 Connected' : '🔴 Disconnected';
-        document.getElementById('queueLength').textContent = data.queueLength || 0;
-        document.getElementById('coreStatus').textContent = data.coreReachable ? '🟢 Reachable' : '🔴 Unreachable';
+        const queueLengthEl = document.getElementById('queueLength');
+        if (queueLengthEl) queueLengthEl.textContent = data.queueLength || 0;
+        const coreStatusEl = document.getElementById('coreStatus');
+        if (coreStatusEl) coreStatusEl.textContent = data.coreReachable ? '🟢 Reachable' : '🔴 Unreachable';
         document.getElementById('currentPlaying').textContent = data.currentPlaying?.title || 'Nothing playing';
 
-        // Load quality and cover settings
+        // Load quality, cover, queue, and suggestions settings
         loadQuality();
         loadCover();
+        loadQueueList();
+        loadSuggestionsStatus();
     } catch (err) {
         console.error('Failed to load status', err);
     }
