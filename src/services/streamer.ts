@@ -444,27 +444,21 @@ export class StreamerService {
                 }
             }
 
+            // Build args - exact match to working manual command
             args = [
-                '-re', // Read at native frame rate
-                ...videoSource, // Thumbnail or black background
+                ...videoSource, // [-loop, 1, -framerate, 30, -i, URL] or lavfi
                 '-i', filePath,
                 '-map', '0:v', // Use video from image/lavfi
                 '-map', '1:a', // Use audio from file
                 '-c:v', 'libx264',
                 '-preset', 'ultrafast',
                 '-tune', 'stillimage',
-                '-g', '60', // Keyframe every 2 seconds
-                '-b:v', '500k',
-                '-maxrate', '500k',
-                '-bufsize', '1000k',
-                '-pix_fmt', 'yuv420p',
                 '-vf', 'scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2',
                 '-c:a', 'aac',
                 '-b:a', '192k',
                 '-ar', '48000',
                 '-shortest', // End when audio ends
                 '-f', 'flv',
-                '-flvflags', 'no_duration_filesize',
                 this.rtmpUrl
             ];
         } else if (preset.preset === 'copy') {
