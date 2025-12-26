@@ -279,9 +279,9 @@ export class StreamerService {
     }
 
     /**
-     * Get thumbnail path for streaming (downloads if needed)
+     * Get thumbnail URL for streaming (direct YouTube URL - no download needed)
      */
-    public async getThumbnailForFile(filePath: string): Promise<string | null> {
+    public getThumbnailUrlForFile(filePath: string): string | null {
         if (!this.useThumbnail) return null;
 
         const videoId = this.getVideoIdFromFile(filePath);
@@ -290,7 +290,10 @@ export class StreamerService {
             return null;
         }
 
-        return this.downloadThumbnail(videoId);
+        // Return direct YouTube thumbnail URL - FFmpeg can read from HTTP
+        const thumbUrl = `https://i3.ytimg.com/vi/${videoId}/hqdefault.jpg`;
+        logger.info(`Using direct thumbnail URL: ${thumbUrl}`);
+        return thumbUrl;
     }
 
     /**
@@ -427,17 +430,17 @@ export class StreamerService {
             // For audio-only files, we need to generate a video track (RTMP requires video)
             logger.info(`Streaming audio-only: ${filePath}`);
 
-            // Try to get thumbnail if enabled
+            // Try to get thumbnail URL if enabled
             let videoSource: string[] = ['-f', 'lavfi', '-i', 'color=c=black:s=1280x720:r=30:d=99999'];
 
             if (this.useThumbnail) {
-                const thumbPath = await this.getThumbnailForFile(filePath);
-                if (thumbPath && fs.existsSync(thumbPath)) {
-                    logger.info(`Using thumbnail as background: ${thumbPath}`);
-                    // Loop the thumbnail image with proper framerate
-                    videoSource = ['-loop', '1', '-framerate', '30', '-i', thumbPath];
+                const thumbUrl = this.getThumbnailUrlForFile(filePath);
+                if (thumbUrl) {
+                    logger.info(`Using thumbnail URL as background: ${thumbUrl}`);
+                    // Loop the thumbnail image from URL with proper framerate
+                    videoSource = ['-loop', '1', '-framerate', '30', '-i', thumbUrl];
                 } else {
-                    logger.warn('Thumbnail not found, using black background');
+                    logger.warn('No thumbnail URL available, using black background');
                 }
             }
 
