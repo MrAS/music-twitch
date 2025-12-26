@@ -216,6 +216,12 @@ export function createServer(): express.Application {
         res.json({ success: true });
     });
 
+    // Active downloads endpoint
+    app.get('/api/admin/downloads', (req, res) => {
+        const { youtube } = getServices();
+        res.json({ downloads: youtube.getActiveDownloads() });
+    });
+
     // Catalog endpoints
     app.get('/api/admin/allowed', (req, res) => {
         const { catalog } = getServices();

@@ -1139,8 +1139,44 @@ setInterval(() => {
     if (currentPage === 'status') {
         loadStatus();
         loadQueueList();
+        loadDownloads();
     }
     if (currentPage === 'queue') {
         loadQueue();
     }
 }, 5000);
+
+// Live Downloads Display
+async function loadDownloads() {
+    const listEl = document.getElementById('downloadsList');
+    if (!listEl) return;
+
+    try {
+        const data = await api('GET', '/downloads');
+        const downloads = data.downloads || [];
+
+        if (downloads.length === 0) {
+            listEl.innerHTML = '<div class="download-empty">No active downloads</div>';
+            return;
+        }
+
+        listEl.innerHTML = downloads.map(d => `
+            <div class="download-item">
+                <span class="download-name">${d.title}</span>
+                <div class="download-progress">
+                    <div class="download-progress-bar" style="width: ${d.progress}%"></div>
+                </div>
+                <span class="download-percent">${d.progress}%</span>
+            </div>
+        `).join('');
+    } catch (err) {
+        // Silent fail - downloads may not be available
+    }
+}
+
+// Poll downloads more frequently
+setInterval(() => {
+    if (currentPage === 'status') {
+        loadDownloads();
+    }
+}, 2000);

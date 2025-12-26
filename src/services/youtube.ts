@@ -61,11 +61,26 @@ export interface YouTubeSearchResult {
     duration: number;
 }
 
+export interface DownloadProgress {
+    id: string;
+    title: string;
+    progress: number; // 0-100
+    status: 'downloading' | 'converting' | 'done' | 'error';
+}
+
 export class YouTubeService {
     private lastSearchResults: YouTubeSearchResult[] = [];
+    private activeDownloads: Map<string, DownloadProgress> = new Map();
 
     constructor() {
         fs.ensureDirSync(config.system.cacheDir);
+    }
+
+    /**
+     * Get active downloads for live display
+     */
+    public getActiveDownloads(): DownloadProgress[] {
+        return Array.from(this.activeDownloads.values());
     }
 
     /**
