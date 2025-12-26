@@ -83,56 +83,31 @@ function handleInsight(data) {
 
 function updateStreamStatus(data) {
     const indicator = document.getElementById('streamIndicator');
-    const statusText = document.getElementById('streamStatusText');
-    const stats = document.getElementById('streamStats');
-
     if (!indicator) return;
 
-    // Remove all status classes
-    indicator.className = 'status-indicator';
+    // Update the new UI live progress elements
+    if (data.status === 'streaming' && data.time) {
+        const streamTimeEl = document.getElementById('streamTime');
+        const streamBitrateEl = document.getElementById('streamBitrate');
+        const streamSpeedEl = document.getElementById('streamSpeed');
+        if (streamTimeEl) streamTimeEl.textContent = data.time;
+        if (streamBitrateEl) streamBitrateEl.textContent = data.bitrate || '0 kbps';
+        if (streamSpeedEl) streamSpeedEl.textContent = data.speed || '0x';
 
-    switch (data.status) {
-        case 'starting':
-            indicator.classList.add('starting');
-            statusText.textContent = 'Starting...';
-            stats.textContent = data.title || '';
-            break;
-        case 'streaming':
-            indicator.classList.add('streaming');
-            statusText.textContent = 'Streaming';
-            const statParts = [];
-            if (data.time) statParts.push(`Time: ${data.time}`);
-            if (data.bitrate) statParts.push(`${data.bitrate}`);
-            if (data.speed) statParts.push(`${data.speed}`);
-            stats.textContent = statParts.join(' | ');
+        // Update indicator to show streaming
+        indicator.textContent = '● LIVE';
+        indicator.classList.remove('offline');
+    } else if (data.status === 'stopped') {
+        // Reset live progress
+        const st = document.getElementById('streamTime');
+        const sb = document.getElementById('streamBitrate');
+        const ss = document.getElementById('streamSpeed');
+        if (st) st.textContent = '00:00:00';
+        if (sb) sb.textContent = '--';
+        if (ss) ss.textContent = '--';
 
-            // Update live progress in Now Playing card
-            if (data.time) {
-                const streamTimeEl = document.getElementById('streamTime');
-                const streamBitrateEl = document.getElementById('streamBitrate');
-                const streamSpeedEl = document.getElementById('streamSpeed');
-                if (streamTimeEl) streamTimeEl.textContent = data.time;
-                if (streamBitrateEl) streamBitrateEl.textContent = data.bitrate || '0 kbps';
-                if (streamSpeedEl) streamSpeedEl.textContent = data.speed || '0x';
-            }
-            break;
-        case 'stopped':
-            indicator.classList.add('stopped');
-            statusText.textContent = 'Idle';
-            stats.textContent = '';
-            // Reset live progress
-            const st = document.getElementById('streamTime');
-            const sb = document.getElementById('streamBitrate');
-            const ss = document.getElementById('streamSpeed');
-            if (st) st.textContent = '00:00:00';
-            if (sb) sb.textContent = '0 kbps';
-            if (ss) ss.textContent = '0x';
-            break;
-        case 'error':
-            indicator.classList.add('error');
-            statusText.textContent = 'Error';
-            stats.textContent = data.title || '';
-            break;
+        indicator.textContent = '● OFFLINE';
+        indicator.classList.add('offline');
     }
 }
 
