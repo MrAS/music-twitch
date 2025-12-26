@@ -533,13 +533,15 @@ export class StreamerService {
                     '-map', '0:v', // Use video from image/lavfi
                     '-map', '1:a', // Use audio from file
                     '-c:v', 'libx264',
-                    '-preset', 'ultrafast',
-                    '-tune', 'stillimage',
+                    '-preset', 'veryfast', // More stable than ultrafast
+                    '-tune', 'zerolatency', // Optimize for streaming
                     '-pix_fmt', 'yuv420p', // Critical for player compatibility
-                    '-b:v', preset.videoBitrate,
-                    '-maxrate', preset.videoBitrate,
-                    '-bufsize', '4000k', // Increased buffer size for stability
+                    '-r', '30', // Enforce output framerate
                     '-g', '60', // Keyframe interval (2s at 30fps)
+                    '-b:v', preset.videoBitrate,
+                    '-minrate', preset.videoBitrate, // Strict CBR
+                    '-maxrate', preset.videoBitrate,
+                    '-bufsize', '3000k', // Buffer size for CBR compatibility
                     '-vf', filter,
                     '-c:a', 'aac',
                     '-b:a', preset.audioBitrate,
