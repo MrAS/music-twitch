@@ -1168,3 +1168,124 @@ td button {
     border-radius: 8px;
     border: 1px solid #e74c3c;
 }
+
+/* ===== MOBILE RESPONSIVE ===== */
+@media (max-width: 768px) {
+    .dashboard {
+        flex-direction: column;
+    }
+
+    .sidebar {
+        width: 100%;
+        height: auto;
+        padding: 1rem;
+        position: sticky;
+        top: 0;
+        z-index: 100;
+    }
+
+    .sidebar nav ul {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+
+    .sidebar nav ul li {
+        padding: 0.75rem 1rem;
+        font-size: 0.85rem;
+    }
+
+    .content {
+        padding: 1rem;
+    }
+
+    /* Now Playing Card - Mobile */
+    .now-playing-card {
+        padding: 1.25rem;
+    }
+
+    .np-title {
+        font-size: 1.3rem;
+    }
+
+    .np-controls {
+        flex-wrap: wrap;
+    }
+
+    .btn-skip,
+    .btn-autoplay {
+        padding: 0.6rem 1.2rem;
+        flex: 1;
+        min-width: 100px;
+    }
+
+    /* Search - Mobile */
+    .search-bar {
+        flex-direction: column;
+    }
+
+    .search-bar input {
+        width: 100%;
+    }
+
+    .btn-search {
+        width: 100%;
+    }
+
+    /* Quick Actions - Mobile */
+    .quick-actions {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .action-card {
+        padding: 0.75rem;
+    }
+
+    .action-card h4 {
+        font-size: 0.75rem;
+    }
+
+    .action-card button {
+        padding: 0.6rem;
+        font-size: 0.85rem;
+    }
+
+    /* Queue items - larger touch targets */
+    .queue-item {
+        padding: 0.75rem;
+    }
+
+    .queue-item button {
+        padding: 0.5rem;
+        font-size: 1.2rem;
+    }
+
+    .search-item {
+        padding: 0.85rem;
+    }
+
+    .search-item button {
+        padding: 0.5rem 1rem;
+    }
+
+    /* Tables - horizontal scroll */
+    .table-container {
+        overflow-x: auto;
+    }
+}
+
+@media (max-width: 480px) {
+    .quick-actions {
+        grid-template-columns: 1fr;
+    }
+
+    .sidebar nav ul li span {
+        display: none;
+    }
+
+    .np-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+}

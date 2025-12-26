@@ -337,6 +337,24 @@ export function createServer(): express.Application {
         }
     });
 
+    // Video Mode endpoints
+    app.get('/api/admin/videomode', (req, res) => {
+        const { streamer } = getServices();
+        res.json({ enabled: !streamer.isAudioOnly() });
+    });
+
+    app.post('/api/admin/videomode/enable', (req, res) => {
+        const { streamer } = getServices();
+        streamer.setAudioOnly(false);
+        res.json({ success: true, enabled: true });
+    });
+
+    app.post('/api/admin/videomode/disable', (req, res) => {
+        const { streamer } = getServices();
+        streamer.setAudioOnly(true);
+        res.json({ success: true, enabled: false });
+    });
+
     // Cover image settings endpoints
     app.get('/api/admin/cover', (req, res) => {
         const { streamer } = getServices();

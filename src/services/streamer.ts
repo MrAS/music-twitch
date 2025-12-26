@@ -93,6 +93,7 @@ export interface StreamSettings {
     quality: string;
     customBitrate?: string;
     coverImage?: string; // Path to cover image for audio streams
+    audioOnly?: boolean; // Audio-only mode (no video)
 }
 
 export class StreamerService {
@@ -100,6 +101,7 @@ export class StreamerService {
     private rtmpUrl: string;
     private currentQuality: string = '720p';
     private coverImage: string = ''; // Path to cover image for audio streams
+    private audioOnly: boolean = true; // Default to audio-only
 
     constructor() {
         // Get RTMP URL from env or use default
@@ -119,6 +121,10 @@ export class StreamerService {
                     this.coverImage = settings.coverImage;
                     logger.info(`Loaded cover image: ${this.coverImage}`);
                 }
+                if (typeof settings.audioOnly === 'boolean') {
+                    this.audioOnly = settings.audioOnly;
+                    logger.info(`Loaded audio-only mode: ${this.audioOnly}`);
+                }
             }
         } catch (error) {
             logger.warn('Could not load stream settings, using defaults');
@@ -129,7 +135,8 @@ export class StreamerService {
         try {
             const settings: StreamSettings = {
                 quality: this.currentQuality,
-                coverImage: this.coverImage || undefined
+                coverImage: this.coverImage || undefined,
+                audioOnly: this.audioOnly
             };
             fs.writeJsonSync(SETTINGS_FILE, settings);
         } catch (error) {
@@ -170,10 +177,20 @@ export class StreamerService {
         return true;
     }
 
+    public isAudioOnly(): boolean {
+        return this.audioOnly;
+    }
+
+    public setAudioOnly(audioOnly: boolean): void {
+        this.audioOnly = audioOnly;
+        this.saveSettings();
+        logger.info(`Audio-only mode: ${audioOnly ? 'enabled' : 'disabled (video mode)'}`);
+    }
+
     /**
      * Check if file is audio-only based on extension
      */
-    private isAudioOnly(filePath: string): boolean {
+    private isAudioFile(filePath: string): boolean {
         const ext = path.extname(filePath).toLowerCase();
         return AUDIO_ONLY_EXTENSIONS.includes(ext);
     }
@@ -285,7 +302,7 @@ export class StreamerService {
         // Stop any existing stream
         await this.stop();
 
-        const isAudio = this.isAudioOnly(filePath);
+        const isAudio = this.isAudioFile(filePath);
         const preset = QUALITY_PRESETS[this.currentQuality] || QUALITY_PRESETS['720p'];
 
         logger.info(`Starting stream: ${filePath} -> ${this.rtmpUrl} (quality: ${preset.name}, audio-only: ${isAudio})`);

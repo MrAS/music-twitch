@@ -174,6 +174,48 @@ async function loadSuggestionsStatus() {
     }
 }
 
+// Video Mode Toggle
+let videoModeEnabled = false;
+
+async function loadVideoModeStatus() {
+    try {
+        const data = await api('GET', '/videomode');
+        videoModeEnabled = data.enabled;
+        updateVideoModeUI();
+    } catch (err) {
+        console.error('Failed to load video mode status', err);
+    }
+}
+
+function updateVideoModeUI() {
+    const btn = document.getElementById('videoModeBtn');
+    const status = document.getElementById('videoModeStatus');
+    if (btn && status) {
+        if (videoModeEnabled) {
+            btn.textContent = 'Disable Video';
+            btn.classList.add('active');
+            status.textContent = 'Video + Audio';
+            status.style.color = '#2ecc71';
+        } else {
+            btn.textContent = 'Enable Video';
+            btn.classList.remove('active');
+            status.textContent = 'Audio Only';
+            status.style.color = '';
+        }
+    }
+}
+
+async function toggleVideoMode() {
+    try {
+        const endpoint = videoModeEnabled ? '/videomode/disable' : '/videomode/enable';
+        await api('POST', endpoint);
+        videoModeEnabled = !videoModeEnabled;
+        updateVideoModeUI();
+    } catch (err) {
+        alert('Failed to toggle video mode');
+    }
+}
+
 function addInsightEntry(data) {
     const feed = document.getElementById('insightsFeed');
     if (!feed) return;
