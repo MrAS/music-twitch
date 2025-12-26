@@ -90,6 +90,16 @@ export class QueueService {
                     this.current = null;
                     logger.info(`Restored interrupted song to queue`);
                 }
+
+                // Auto-resume: if queue has items, start playing after services init
+                if (this.queue.length > 0) {
+                    logger.info(`Auto-resuming: ${this.queue.length} items to play`);
+                    setTimeout(() => {
+                        if (!this.current && !this.isProcessing) {
+                            this.playNext();
+                        }
+                    }, 3000); // Wait 3s for services to initialize
+                }
             }
         } catch (error) {
             logger.warn('Could not load queue state, starting fresh');
