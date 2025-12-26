@@ -268,6 +268,48 @@ async function toggleThumbnailStream() {
     }
 }
 
+// 24/7 Radio Mode Toggle
+let radioModeEnabled = false;
+
+async function loadRadioStatus() {
+    try {
+        const data = await api('GET', '/radio');
+        radioModeEnabled = data.enabled;
+        updateRadioUI();
+    } catch (err) {
+        console.error('Failed to load radio status', err);
+    }
+}
+
+function updateRadioUI() {
+    const btn = document.getElementById('radioBtn');
+    const status = document.getElementById('radioStatus');
+    if (btn && status) {
+        if (radioModeEnabled) {
+            btn.textContent = 'Stop Radio';
+            btn.classList.add('active');
+            status.textContent = 'Streaming';
+            status.style.color = '#2ecc71';
+        } else {
+            btn.textContent = 'Start 24/7';
+            btn.classList.remove('active');
+            status.textContent = 'Off';
+            status.style.color = '';
+        }
+    }
+}
+
+async function toggleRadioMode() {
+    try {
+        const endpoint = radioModeEnabled ? '/radio/stop' : '/radio/start';
+        await api('POST', endpoint);
+        radioModeEnabled = !radioModeEnabled;
+        updateRadioUI();
+    } catch (err) {
+        alert('Failed to toggle radio mode: ' + (err.message || 'Unknown error'));
+    }
+}
+
 function addInsightEntry(data) {
     const feed = document.getElementById('insightsFeed');
     if (!feed) return;

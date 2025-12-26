@@ -18,6 +18,7 @@ export interface AppServices {
     restreamer: any;
     streamer: any;
     twitchBot: any;
+    radioStreamer?: any;
 }
 
 let services: AppServices;
@@ -388,6 +389,61 @@ export function createServer(): express.Application {
         const { streamer } = getServices();
         streamer.setUseThumbnail(false);
         res.json({ success: true, enabled: false });
+    });
+
+    // 24/7 Radio Mode endpoints
+    app.get('/api/admin/radio', (req, res) => {
+        const { radioStreamer } = getServices();
+        if (!radioStreamer) {
+            return res.json({ enabled: false, queueLength: 0 });
+        }
+        res.json({
+            enabled: radioStreamer.isStreaming(),
+            queueLength: radioStreamer.getQueueLength()
+        });
+    });
+
+    app.post('/api/admin/radio/start', async (req, res) => {
+        const { radioStreamer } = getServices();
+        if (!radioStreamer) {
+            return res.status(500).json({ error: 'Radio service not initialized' });
+        }
+        try {
+            await radioStreamer.start();
+            res.json({ success: true, message: 'Radio started' });
+        } catch (error: any) {
+            res.status(500).json({ error: error.message });
+        }
+    });
+
+    app.post('/api/admin/radio/stop', async (req, res) => {
+        const { radioStreamer } = getServices();
+        if (!radioStreamer) {
+            return res.status(500).json({ error: 'Radio service not initialized' });
+        }
+        try {
+            await radioStreamer.stop();
+            res.json({ success: true, message: 'Radio stopped' });
+        } catch (error: any) {
+            res.status(500).json({ error: error.message });
+        }
+    });
+
+    app.post('/api/admin/radio/add', async (req, res) => {
+        const { radioStreamer } = getServices();
+        if (!radioStreamer) {
+            return res.status(500).json({ error: 'Radio service not initialized' });
+        }
+        const { path: filePath, title } = req.body;
+        if (!filePath || !title) {
+            return res.status(400).json({ error: 'path and title required' });
+        }
+        try {
+            await radioStreamer.addSong(filePath, title);
+            res.json({ success: true, message: `Added: ${title}` });
+        } catch (error: any) {
+            res.status(500).json({ error: error.message });
+        }
     });
 
     // Cover image settings endpoints

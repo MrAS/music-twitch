@@ -4,6 +4,7 @@ import { StreamerService } from './services/streamer';
 import { RestreamerService } from './services/restreamer';
 import { QueueService } from './services/queue';
 import { YouTubeService } from './services/youtube';
+import { radioStreamer } from './services/radio-streamer';
 import { TwitchBot } from './twitch';
 import { createServer, setServices } from './server';
 import { config } from './config';
@@ -24,7 +25,8 @@ async function main() {
         youtube,
         restreamer,
         streamer,
-        twitchBot: bot
+        twitchBot: bot,
+        radioStreamer
     });
 
     // Start Express server
