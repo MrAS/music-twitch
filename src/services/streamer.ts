@@ -408,6 +408,10 @@ export class StreamerService {
         // Stop any existing stream
         await this.stop();
 
+        // Wait for RTMP connection to be released by Restreamer
+        logger.info('Waiting for RTMP connection to be released...');
+        await new Promise(resolve => setTimeout(resolve, 2000));
+
         const isAudio = this.isAudioFile(filePath);
         const preset = QUALITY_PRESETS[this.currentQuality] || QUALITY_PRESETS['720p'];
 
