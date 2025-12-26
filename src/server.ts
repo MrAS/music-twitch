@@ -137,6 +137,41 @@ export function createServer(): express.Application {
         }
     });
 
+    // Playlist streaming endpoints
+    app.post('/api/admin/playlist/start', async (req, res) => {
+        const { streamer } = getServices();
+        try {
+            await streamer.streamPlaylist();
+            res.json({ success: true, message: 'Playlist streaming started' });
+        } catch (error: any) {
+            res.status(500).json({ error: error.message });
+        }
+    });
+
+    app.post('/api/admin/playlist/add', async (req, res) => {
+        const { filePath } = req.body;
+        const { streamer } = getServices();
+
+        if (!filePath) {
+            return res.status(400).json({ error: 'filePath required' });
+        }
+
+        streamer.addToPlaylist(filePath);
+        res.json({ success: true, added: filePath });
+    });
+
+    app.post('/api/admin/playlist/write', async (req, res) => {
+        const { files } = req.body;
+        const { streamer } = getServices();
+
+        if (!files || !Array.isArray(files)) {
+            return res.status(400).json({ error: 'files array required' });
+        }
+
+        streamer.writePlaylist(files);
+        res.json({ success: true, count: files.length });
+    });
+
     // Queue endpoints
     app.get('/api/admin/queue', (req, res) => {
         const { queue } = getServices();

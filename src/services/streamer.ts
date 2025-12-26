@@ -179,6 +179,106 @@ export class StreamerService {
     }
 
     /**
+     * Get the playlist file path
+     */
+    public getPlaylistPath(): string {
+        return path.join(config.system.cacheDir, 'playlist.txt');
+    }
+
+    /**
+     * Write a playlist file for FFmpeg concat demuxer
+     */
+    public writePlaylist(files: string[]): void {
+        const playlistPath = this.getPlaylistPath();
+        const content = files.map(f => `file '${f}'`).join('\n');
+        fs.writeFileSync(playlistPath, content);
+        logger.info(`Playlist written with ${files.length} files: ${playlistPath}`);
+    }
+
+    /**
+     * Add a file to the playlist
+     */
+    public addToPlaylist(filePath: string): void {
+        const playlistPath = this.getPlaylistPath();
+        const line = `file '${filePath}'\n`;
+        fs.appendFileSync(playlistPath, line);
+        logger.info(`Added to playlist: ${filePath}`);
+    }
+
+    /**
+     * Stream using playlist.txt with concat demuxer (continuous streaming)
+     * Command: ffmpeg -re -f concat -safe 0 -i playlist.txt -c:a aac -b:a 128k -ar 44100 -f flv rtmp://...
+     */
+    public async streamPlaylist(): Promise<void> {
+        const playlistPath = this.getPlaylistPath();
+
+        if (!fs.existsSync(playlistPath)) {
+            throw new Error('Playlist file not found. Add files first.');
+        }
+
+        // Stop any existing stream
+        await this.stop();
+
+        logger.info(`Starting playlist stream: ${playlistPath} -> ${this.rtmpUrl}`);
+        insightsTracker.startStream('Playlist');
+
+        const args = [
+            '-re',
+            '-f', 'concat',
+            '-safe', '0',
+            '-i', playlistPath,
+            '-c:a', 'aac',
+            '-b:a', '128k',
+            '-ar', '44100',
+            '-f', 'flv',
+            this.rtmpUrl
+        ];
+
+        logger.info(`FFmpeg command: ffmpeg ${args.join(' ')}`);
+
+        return new Promise((resolve, reject) => {
+            this.currentProcess = spawn(FFMPEG_PATH, args, {
+                stdio: ['pipe', 'pipe', 'pipe']
+            });
+
+            this.currentProcess.on('error', (err) => {
+                logger.error('FFmpeg error:', err);
+                insightsTracker.streamError(err.message);
+                reject(err);
+            });
+
+            this.currentProcess.stderr?.on('data', (data: Buffer) => {
+                const line = data.toString();
+                // Parse FFmpeg output for insights
+                insightsTracker.parseFFmpegOutput(line);
+
+                if (line.includes('time=') || line.includes('size=')) {
+                    logger.info(`FFmpeg: ${line.substring(0, 120)}`);
+                }
+            });
+
+            this.currentProcess.on('close', (code) => {
+                logger.info(`FFmpeg playlist exited with code ${code}`);
+                insightsTracker.stopStream();
+                this.currentProcess = null;
+                if (code === 0 || code === 255) {
+                    resolve();
+                } else {
+                    reject(new Error(`FFmpeg exited with code ${code}`));
+                }
+            });
+
+            // Give FFmpeg time to start
+            setTimeout(() => {
+                if (this.currentProcess) {
+                    logger.info('Playlist stream started successfully');
+                    resolve();
+                }
+            }, 2000);
+        });
+    }
+
+    /**
      * Stream a local file to RTMPS using FFmpeg
      */
     public async streamFile(filePath: string, loop: boolean = false): Promise<void> {
