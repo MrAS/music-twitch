@@ -950,8 +950,11 @@ async function searchYouTube() {
 
         resultsDiv.innerHTML = searchResults.map((r, i) => `
             <div class="search-item" onclick="playSearchResult(${i})">
-                <span class="search-item-title">${r.title}</span>
-                ${r.cached ? '<span class="search-item-cached">✓ cached</span>' : ''}
+                <img class="search-item-thumb" src="https://i3.ytimg.com/vi/${r.id}/default.jpg" alt="">
+                <div class="search-item-info">
+                    <span class="search-item-title">${r.title}</span>
+                    ${r.cached ? '<span class="search-item-cached">✓ cached</span>' : ''}
+                </div>
                 <button onclick="event.stopPropagation(); playSearchResult(${i})">▶ Play</button>
             </div>
         `).join('');
@@ -992,13 +995,16 @@ async function loadQueueList() {
             return;
         }
 
-        listEl.innerHTML = queue.map((item, i) => `
+        listEl.innerHTML = queue.map((item, i) => {
+            const thumbUrl = item.videoId ? `https://i3.ytimg.com/vi/${item.videoId}/default.jpg` : '';
+            return `
             <div class="queue-item">
+                ${thumbUrl ? `<img class="queue-item-thumb" src="${thumbUrl}" alt="">` : ''}
                 <span class="queue-item-num">${i + 1}</span>
                 <span class="queue-item-title">${item.title}</span>
                 <button onclick="removeFromQueue(${i})" title="Remove">✕</button>
             </div>
-        `).join('');
+        `}).join('');
     } catch (err) {
         listEl.innerHTML = '<div class="queue-empty">Failed to load queue</div>';
     }
