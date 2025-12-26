@@ -76,18 +76,29 @@ export class YouTubeService {
     }
 
     /**
-     * Check if a video is already cached (checks both .m4a and .mp4)
+     * Check if a video is already cached
      */
     public isCached(videoId: string): boolean {
-        const m4aPath = path.resolve(config.system.cacheDir, `yt_${videoId}.m4a`);
-        const mp4Path = path.resolve(config.system.cacheDir, `yt_${videoId}.mp4`);
-        return fs.existsSync(m4aPath) || fs.existsSync(mp4Path);
+        return this.getCachedPath(videoId) !== null;
     }
 
     /**
-     * Get cached file path if exists (checks both .m4a and .mp4)
+     * Get cached file path if exists (checks mapping file and legacy formats)
      */
     public getCachedPath(videoId: string): string | null {
+        // Check new mapping system first
+        const mappingFile = path.resolve(config.system.cacheDir, 'id_mapping.json');
+        try {
+            if (fs.existsSync(mappingFile)) {
+                const mapping = fs.readJsonSync(mappingFile);
+                if (mapping[videoId]) {
+                    const mappedPath = path.resolve(config.system.cacheDir, mapping[videoId]);
+                    if (fs.existsSync(mappedPath)) return mappedPath;
+                }
+            }
+        } catch (e) { }
+
+        // Fall back to legacy yt_VIDEOID format
         const m4aPath = path.resolve(config.system.cacheDir, `yt_${videoId}.m4a`);
         if (fs.existsSync(m4aPath)) return m4aPath;
         const mp4Path = path.resolve(config.system.cacheDir, `yt_${videoId}.mp4`);
@@ -213,31 +224,49 @@ export class YouTubeService {
 
     /**
      * Download a YouTube video by URL and return the file path
-     * Downloads audio-only (M4A) to avoid merge issues. The streamer generates black video.
+     * Downloads audio-only (M4A) to avoid merge issues.
+     * Files are named with incrementing numbers and song titles.
      */
     public async download(videoId: string, url: string): Promise<string> {
-        // Use .m4a extension for audio-only downloads
-        const filename = `yt_${videoId}.m4a`;
+        // Get video title
+        const title = this.lastSearchResults.find(r => r.id === videoId)?.title || videoId;
+
+        // Sanitize title for filename (remove invalid characters)
+        const sanitizedTitle = title
+            .replace(/[<>:"/\\|?*]/g, '') // Remove invalid file chars
+            .replace(/\s+/g, ' ')          // Normalize whitespace
+            .trim()
+            .substring(0, 80);             // Limit length
+
+        // Get next number by counting existing files
+        const existingFiles = fs.readdirSync(config.system.cacheDir)
+            .filter(f => f.match(/^\d+-/) && (f.endsWith('.m4a') || f.endsWith('.mp4')));
+        const nextNum = existingFiles.length + 1;
+
+        // Create filename: "1-Song Title.m4a"
+        const filename = `${nextNum}-${sanitizedTitle}.m4a`;
         const filePath = path.resolve(config.system.cacheDir, filename);
 
-        // Check if already cached (also check for old .mp4 files)
-        if (fs.existsSync(filePath)) {
-            logger.info(`YouTube audio cached: ${filePath}`);
-            return filePath;
-        }
-        const mp4Path = path.resolve(config.system.cacheDir, `yt_${videoId}.mp4`);
-        if (fs.existsSync(mp4Path)) {
-            logger.info(`YouTube video cached: ${mp4Path}`);
-            return mp4Path;
+        // Store mapping of videoId to filename for cache lookups
+        const mappingFile = path.resolve(config.system.cacheDir, 'id_mapping.json');
+        let mapping: Record<string, string> = {};
+        try {
+            if (fs.existsSync(mappingFile)) {
+                mapping = fs.readJsonSync(mappingFile);
+            }
+        } catch (e) { }
+
+        // Check if this video is already downloaded
+        if (mapping[videoId] && fs.existsSync(path.resolve(config.system.cacheDir, mapping[videoId]))) {
+            const cachedPath = path.resolve(config.system.cacheDir, mapping[videoId]);
+            logger.info(`YouTube audio cached: ${cachedPath}`);
+            return cachedPath;
         }
 
-        logger.info(`Downloading YouTube audio: ${url}`);
+        logger.info(`Downloading YouTube audio: ${title} -> ${filename}`);
 
         // Import progress tracker
         const { progressTracker } = require('./progress');
-
-        // Get video title for progress display
-        const title = this.lastSearchResults.find(r => r.id === videoId)?.title || videoId;
         progressTracker.start(title);
 
         try {
@@ -259,6 +288,10 @@ export class YouTubeService {
             });
 
             await subprocess;
+
+            // Save mapping
+            mapping[videoId] = filename;
+            fs.writeJsonSync(mappingFile, mapping);
 
             progressTracker.complete();
             logger.info(`Download complete: ${filePath}`);
