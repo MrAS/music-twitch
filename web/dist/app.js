@@ -956,8 +956,8 @@ async function searchYouTube() {
                     ${r.cached ? '<span class="search-item-cached">✓ cached</span>' : ''}
                 </div>
                 <div class="search-item-actions">
-                    <button onclick="event.stopPropagation(); addToQueue(${i})" title="Add to Queue">➕</button>
-                    <button onclick="event.stopPropagation(); playSearchResult(${i})" title="Play Now">▶</button>
+                    <button onclick="event.stopPropagation(); addToQueue(${i}, this)" title="Add to Queue" class="btn-queue">➕</button>
+                    <button onclick="event.stopPropagation(); playSearchResult(${i})" title="Play Now" class="btn-play">▶</button>
                 </div>
             </div>
         `).join('');
@@ -966,21 +966,32 @@ async function searchYouTube() {
     }
 }
 
-async function addToQueue(index) {
+async function addToQueue(index, btn) {
     const result = searchResults[index];
     if (!result) return;
+
+    // Visual feedback immediately
+    const originalText = btn.textContent;
+    btn.disabled = true;
+    btn.style.opacity = '0.7';
 
     try {
         const data = await api('POST', '/queue/add', { videoId: result.id, url: result.url, title: result.title });
         if (data.success) {
             loadQueueList();
-            // Show brief feedback
-            const btn = event.target;
             btn.textContent = '✓';
-            setTimeout(() => btn.textContent = '➕', 1000);
+            btn.style.borderColor = 'var(--success)';
+            setTimeout(() => {
+                btn.textContent = originalText;
+                btn.disabled = false;
+                btn.style.opacity = '1';
+                btn.style.borderColor = 'var(--border)';
+            }, 1500);
         }
     } catch (err) {
         alert('Failed to add to queue: ' + (err.message || 'Error'));
+        btn.disabled = false;
+        btn.style.opacity = '1';
     }
 }
 

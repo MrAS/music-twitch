@@ -577,17 +577,28 @@ body {
 
 .search-item button {
     padding: 0.5rem 0.75rem;
-    background: var(--accent);
     color: white;
     border: none;
     border-radius: 6px;
     cursor: pointer;
     font-size: 1rem;
+    transition: all 0.2s;
 }
 
-.search-item button:first-child {
-    background: var(--bg-dark);
-    border: 1px solid var(--border);
+.btn-play {
+    background: var(--accent);
+}
+
+.btn-queue {
+    background: transparent;
+    border: 1px solid #4caf50;
+    /* Green */
+    color: #4caf50;
+}
+
+.btn-queue:hover {
+    background: #4caf50;
+    color: white;
 }
 
 .search-item button:hover {
