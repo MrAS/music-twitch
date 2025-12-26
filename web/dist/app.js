@@ -434,11 +434,13 @@ async function loadStatus() {
         if (coreStatusEl) coreStatusEl.textContent = data.coreReachable ? '🟢 Reachable' : '🔴 Unreachable';
         document.getElementById('currentPlaying').textContent = data.currentPlaying?.title || 'Nothing playing';
 
-        // Load quality, cover, queue, and suggestions settings
+        // Load quality, cover, queue, and all toggle settings
         loadQuality();
         loadCover();
         loadQueueList();
         loadSuggestionsStatus();
+        loadVideoModeStatus();
+        loadThumbStreamStatus();
     } catch (err) {
         console.error('Failed to load status', err);
     }
