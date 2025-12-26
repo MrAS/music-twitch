@@ -1,6 +1,8 @@
 import { spawn, ChildProcess } from 'child_process';
 import path from 'path';
 import fs from 'fs-extra';
+import https from 'https';
+import http from 'http';
 import winston from 'winston';
 import { config } from '../config';
 import { insightsTracker } from './progress';
@@ -14,6 +16,10 @@ const logger = winston.createLogger({
 const FFMPEG_PATH = process.env.FFMPEG_PATH
     ? path.join(process.env.FFMPEG_PATH, 'ffmpeg.exe')
     : 'ffmpeg';
+
+// File paths
+const ID_MAPPING_FILE = path.join(config.system.cacheDir, 'id_mapping.json');
+const THUMBNAILS_DIR = path.join(config.system.cacheDir, 'thumbnails');
 
 // Audio-only extensions that need video generation
 const AUDIO_ONLY_EXTENSIONS = ['.m4a', '.mp3', '.aac', '.flac', '.wav', '.ogg'];
@@ -205,6 +211,89 @@ export class StreamerService {
     }
 
     /**
+     * Get video ID from cached filename using id_mapping.json
+     */
+    private getVideoIdFromFile(filePath: string): string | null {
+        const filename = path.basename(filePath);
+
+        // Check id_mapping.json for reverse lookup
+        try {
+            if (fs.existsSync(ID_MAPPING_FILE)) {
+                const mapping: Record<string, string> = fs.readJsonSync(ID_MAPPING_FILE);
+                // Reverse lookup: find videoId that maps to this filename
+                for (const [videoId, mappedFile] of Object.entries(mapping)) {
+                    if (mappedFile === filename) {
+                        return videoId;
+                    }
+                }
+            }
+        } catch (error) {
+            logger.warn('Failed to read id_mapping.json');
+        }
+
+        // Fallback: check for yt_VIDEOID pattern in filename
+        const ytMatch = filename.match(/yt_([a-zA-Z0-9_-]{11})/);
+        if (ytMatch) return ytMatch[1];
+
+        return null;
+    }
+
+    /**
+     * Download YouTube thumbnail for a video ID
+     */
+    private async downloadThumbnail(videoId: string): Promise<string | null> {
+        await fs.ensureDir(THUMBNAILS_DIR);
+        const thumbPath = path.join(THUMBNAILS_DIR, `${videoId}.jpg`);
+
+        // Return cached thumbnail if exists
+        if (fs.existsSync(thumbPath)) {
+            logger.info(`Using cached thumbnail: ${thumbPath}`);
+            return thumbPath;
+        }
+
+        // Download from YouTube
+        const url = `https://i3.ytimg.com/vi/${videoId}/hqdefault.jpg`;
+        logger.info(`Downloading thumbnail: ${url}`);
+
+        return new Promise((resolve) => {
+            const file = fs.createWriteStream(thumbPath);
+            https.get(url, (response) => {
+                if (response.statusCode !== 200) {
+                    logger.warn(`Failed to download thumbnail: ${response.statusCode}`);
+                    fs.unlinkSync(thumbPath);
+                    resolve(null);
+                    return;
+                }
+                response.pipe(file);
+                file.on('finish', () => {
+                    file.close();
+                    logger.info(`Thumbnail saved: ${thumbPath}`);
+                    resolve(thumbPath);
+                });
+            }).on('error', (err) => {
+                logger.error('Thumbnail download error:', err);
+                fs.unlink(thumbPath, () => { });
+                resolve(null);
+            });
+        });
+    }
+
+    /**
+     * Get thumbnail path for streaming (downloads if needed)
+     */
+    public async getThumbnailForFile(filePath: string): Promise<string | null> {
+        if (!this.useThumbnail) return null;
+
+        const videoId = this.getVideoIdFromFile(filePath);
+        if (!videoId) {
+            logger.info('No video ID found for thumbnail');
+            return null;
+        }
+
+        return this.downloadThumbnail(videoId);
+    }
+
+    /**
      * Check if file is audio-only based on extension
      */
     private isAudioFile(filePath: string): boolean {
@@ -334,11 +423,23 @@ export class StreamerService {
             // For audio-only files, we need to generate a video track (RTMP requires video)
             logger.info(`Streaming audio-only: ${filePath}`);
 
+            // Try to get thumbnail if enabled
+            let videoSource: string[] = ['-f', 'lavfi', '-i', 'color=c=black:s=1280x720:r=30:d=99999'];
+
+            if (this.useThumbnail) {
+                const thumbPath = await this.getThumbnailForFile(filePath);
+                if (thumbPath && fs.existsSync(thumbPath)) {
+                    logger.info(`Using thumbnail as background: ${thumbPath}`);
+                    // Loop the thumbnail image
+                    videoSource = ['-loop', '1', '-i', thumbPath];
+                }
+            }
+
             args = [
                 '-re', // Read at native frame rate
-                '-f', 'lavfi', '-i', 'color=c=black:s=1280x720:r=30:d=99999', // Black video (long duration)
+                ...videoSource, // Thumbnail or black background
                 '-i', filePath,
-                '-map', '0:v', // Use video from lavfi
+                '-map', '0:v', // Use video from image/lavfi
                 '-map', '1:a', // Use audio from file
                 '-c:v', 'libx264',
                 '-preset', 'ultrafast',
@@ -348,6 +449,7 @@ export class StreamerService {
                 '-maxrate', '500k',
                 '-bufsize', '1000k',
                 '-pix_fmt', 'yuv420p',
+                '-vf', 'scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2',
                 '-c:a', 'aac',
                 '-b:a', '192k',
                 '-ar', '48000',
