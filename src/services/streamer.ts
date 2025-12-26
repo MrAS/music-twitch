@@ -103,6 +103,9 @@ export interface StreamSettings {
     useThumbnail?: boolean; // Use YouTube thumbnail as background
 }
 
+// Playback state file for resume after restart
+const PLAYBACK_STATE_FILE = './playback-state.json';
+
 export class StreamerService {
     private currentProcess: ChildProcess | null = null;
     private rtmpUrl: string;
@@ -112,14 +115,26 @@ export class StreamerService {
     private useThumbnail: boolean = false; // Use YouTube thumbnail as background
     private isStarting: boolean = false; // Lock to prevent double-starts
 
+    // Playback state for resume
+    private currentFile: string = '';
+    private currentPosition: number = 0; // seconds
+    private positionUpdateInterval: NodeJS.Timeout | null = null;
+
     constructor() {
         // Get RTMP URL from env or use default
         this.rtmpUrl = process.env.RTMP_URL || 'rtmps://stream.egpeak.com:1936/30becbb1-4642-465c-94a0-215d8467b5e3.stream';
         this.loadSettings();
+        this.loadPlaybackState();
     }
 
     private loadSettings(): void {
         try {
+            // Check for default quality from env (forced default)
+            const defaultQuality = process.env.DEFAULT_QUALITY;
+            if (defaultQuality && QUALITY_PRESETS[defaultQuality]) {
+                this.currentQuality = defaultQuality;
+            }
+
             if (fs.existsSync(SETTINGS_FILE)) {
                 const settings: StreamSettings = fs.readJsonSync(SETTINGS_FILE);
                 if (settings.quality && QUALITY_PRESETS[settings.quality]) {
@@ -155,6 +170,43 @@ export class StreamerService {
             fs.writeJsonSync(SETTINGS_FILE, settings);
         } catch (error) {
             logger.error('Could not save stream settings', error);
+        }
+    }
+
+    private loadPlaybackState(): void {
+        try {
+            if (fs.existsSync(PLAYBACK_STATE_FILE)) {
+                const state = fs.readJsonSync(PLAYBACK_STATE_FILE);
+                this.currentFile = state.file || '';
+                this.currentPosition = state.position || 0;
+                logger.info(`Loaded playback state: ${this.currentFile} at ${this.currentPosition}s`);
+            }
+        } catch (error) {
+            logger.warn('Could not load playback state');
+        }
+    }
+
+    private savePlaybackState(): void {
+        try {
+            fs.writeJsonSync(PLAYBACK_STATE_FILE, {
+                file: this.currentFile,
+                position: this.currentPosition,
+                timestamp: Date.now()
+            });
+        } catch (error) {
+            // Ignore - not critical
+        }
+    }
+
+    public getPlaybackState(): { file: string; position: number } {
+        return { file: this.currentFile, position: this.currentPosition };
+    }
+
+    public clearPlaybackState(): void {
+        this.currentFile = '';
+        this.currentPosition = 0;
+        if (fs.existsSync(PLAYBACK_STATE_FILE)) {
+            fs.unlinkSync(PLAYBACK_STATE_FILE);
         }
     }
 
@@ -427,11 +479,25 @@ export class StreamerService {
             const isAudio = this.isAudioFile(filePath);
             const preset = QUALITY_PRESETS[this.currentQuality] || QUALITY_PRESETS['720p'];
 
-            logger.info(`Starting stream: ${filePath} -> ${this.rtmpUrl} (quality: ${preset.name}, audio-only: ${isAudio})`);
+            // Check for resume position
+            let seekPosition = 0;
+            if (this.currentFile === filePath && this.currentPosition > 0) {
+                seekPosition = this.currentPosition;
+                logger.info(`Resuming from position: ${seekPosition}s`);
+            } else {
+                // New file - reset position
+                this.currentFile = filePath;
+                this.currentPosition = 0;
+            }
+
+            logger.info(`Starting stream: ${filePath} -> ${this.rtmpUrl} (quality: ${preset.name}, audio-only: ${isAudio}, seek: ${seekPosition}s)`);
 
             // Emit stream starting event
             const streamTitle = path.basename(filePath);
             insightsTracker.startStream(streamTitle);
+
+            // Build seek args if resuming
+            const seekArgs = seekPosition > 0 ? ['-ss', seekPosition.toString()] : [];
 
             let args: string[];
 
@@ -456,6 +522,7 @@ export class StreamerService {
                 // Build args - exact match to working manual command
                 args = [
                     ...videoSource, // [-loop, 1, -framerate, 30, -i, URL] or lavfi
+                    ...seekArgs, // Seek to resume position
                     '-i', filePath,
                     '-map', '0:v', // Use video from image/lavfi
                     '-map', '1:a', // Use audio from file
@@ -533,6 +600,15 @@ export class StreamerService {
                         logger.error(`FFmpeg ERROR: ${line}`);
                     }
 
+                    // Track playback position from FFmpeg output (time=HH:MM:SS.xx)
+                    const timeMatch = line.match(/time=(\d{2}):(\d{2}):(\d{2})\.(\d{2})/);
+                    if (timeMatch) {
+                        const hours = parseInt(timeMatch[1]);
+                        const minutes = parseInt(timeMatch[2]);
+                        const seconds = parseInt(timeMatch[3]);
+                        this.currentPosition = hours * 3600 + minutes * 60 + seconds;
+                    }
+
                     // Parse FFmpeg output for insights
                     insightsTracker.parseFFmpegOutput(line);
                     // Log progress
@@ -540,6 +616,13 @@ export class StreamerService {
                         logger.info(`FFmpeg: ${line.substring(0, 200)}`);
                     }
                 });
+
+                // Save playback state every 10 seconds
+                this.positionUpdateInterval = setInterval(() => {
+                    if (this.currentPosition > 0) {
+                        this.savePlaybackState();
+                    }
+                }, 10000);
 
                 this.currentProcess.on('close', (code) => {
                     logger.info(`FFmpeg exited with code ${code}`);
@@ -573,6 +656,17 @@ export class StreamerService {
      * Stop current stream
      */
     public async stop(): Promise<void> {
+        // Clear position update interval
+        if (this.positionUpdateInterval) {
+            clearInterval(this.positionUpdateInterval);
+            this.positionUpdateInterval = null;
+        }
+
+        // Save final state
+        if (this.currentPosition > 0) {
+            this.savePlaybackState();
+        }
+
         if (this.currentProcess) {
             logger.info('Stopping current stream');
 
