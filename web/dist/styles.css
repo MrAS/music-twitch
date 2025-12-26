@@ -187,16 +187,35 @@ body {
 .now-playing-card {
     background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
     border-radius: 20px;
-    padding: 2rem;
+    padding: 1.5rem;
     border: 1px solid rgba(233, 69, 96, 0.3);
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+}
+
+.np-content {
+    display: flex;
+    gap: 1.5rem;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.np-thumbnail {
+    width: 120px;
+    height: 90px;
+    object-fit: cover;
+    border-radius: 10px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4);
+}
+
+.np-info {
+    flex: 1;
 }
 
 .np-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 1rem;
+    margin-bottom: 0.5rem;
 }
 
 .np-badge {

@@ -355,6 +355,24 @@ export function createServer(): express.Application {
         res.json({ success: true, enabled: false });
     });
 
+    // Thumbnail Stream endpoints (use YouTube thumbnail as stream background)
+    app.get('/api/admin/thumbnail-stream', (req, res) => {
+        const { streamer } = getServices();
+        res.json({ enabled: streamer.getUseThumbnail() });
+    });
+
+    app.post('/api/admin/thumbnail-stream/enable', (req, res) => {
+        const { streamer } = getServices();
+        streamer.setUseThumbnail(true);
+        res.json({ success: true, enabled: true });
+    });
+
+    app.post('/api/admin/thumbnail-stream/disable', (req, res) => {
+        const { streamer } = getServices();
+        streamer.setUseThumbnail(false);
+        res.json({ success: true, enabled: false });
+    });
+
     // Cover image settings endpoints
     app.get('/api/admin/cover', (req, res) => {
         const { streamer } = getServices();

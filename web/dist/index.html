@@ -41,13 +41,18 @@
                 <!-- Main Player Section -->
                 <div class="player-section">
                     <div class="now-playing-card">
-                        <div class="np-header">
-                            <span class="np-badge" id="streamIndicator">● LIVE</span>
-                            <span class="np-time" id="streamTime">00:00:00</span>
-                        </div>
-                        <h2 class="np-title" id="currentPlaying">Nothing playing</h2>
-                        <div class="np-stats">
-                            <span id="streamBitrate">--</span> • <span id="streamSpeed">--</span>
+                        <div class="np-content">
+                            <img id="npThumbnail" class="np-thumbnail" src="" alt="" style="display:none" />
+                            <div class="np-info">
+                                <div class="np-header">
+                                    <span class="np-badge" id="streamIndicator">● LIVE</span>
+                                    <span class="np-time" id="streamTime">00:00:00</span>
+                                </div>
+                                <h2 class="np-title" id="currentPlaying">Nothing playing</h2>
+                                <div class="np-stats">
+                                    <span id="streamBitrate">--</span> • <span id="streamSpeed">--</span>
+                                </div>
+                            </div>
                         </div>
                         <div class="np-controls">
                             <button onclick="skipTrack()" class="btn-skip">⏭️ Skip</button>
@@ -101,6 +106,11 @@
                         <h4>🎥 Video Mode</h4>
                         <p id="videoModeStatus">Audio Only</p>
                         <button onclick="toggleVideoMode()" id="videoModeBtn">Enable Video</button>
+                    </div>
+                    <div class="action-card">
+                        <h4>🖼️ Thumbnail</h4>
+                        <p id="thumbStreamStatus">Off</p>
+                        <button onclick="toggleThumbnailStream()" id="thumbStreamBtn">Enable</button>
                     </div>
                     <div class="action-card">
                         <h4>📡 Status</h4>

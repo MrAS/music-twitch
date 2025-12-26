@@ -94,6 +94,7 @@ export interface StreamSettings {
     customBitrate?: string;
     coverImage?: string; // Path to cover image for audio streams
     audioOnly?: boolean; // Audio-only mode (no video)
+    useThumbnail?: boolean; // Use YouTube thumbnail as background
 }
 
 export class StreamerService {
@@ -102,6 +103,7 @@ export class StreamerService {
     private currentQuality: string = '720p';
     private coverImage: string = ''; // Path to cover image for audio streams
     private audioOnly: boolean = true; // Default to audio-only
+    private useThumbnail: boolean = false; // Use YouTube thumbnail as background
 
     constructor() {
         // Get RTMP URL from env or use default
@@ -125,6 +127,10 @@ export class StreamerService {
                     this.audioOnly = settings.audioOnly;
                     logger.info(`Loaded audio-only mode: ${this.audioOnly}`);
                 }
+                if (typeof settings.useThumbnail === 'boolean') {
+                    this.useThumbnail = settings.useThumbnail;
+                    logger.info(`Loaded thumbnail stream: ${this.useThumbnail}`);
+                }
             }
         } catch (error) {
             logger.warn('Could not load stream settings, using defaults');
@@ -136,7 +142,8 @@ export class StreamerService {
             const settings: StreamSettings = {
                 quality: this.currentQuality,
                 coverImage: this.coverImage || undefined,
-                audioOnly: this.audioOnly
+                audioOnly: this.audioOnly,
+                useThumbnail: this.useThumbnail
             };
             fs.writeJsonSync(SETTINGS_FILE, settings);
         } catch (error) {
@@ -185,6 +192,16 @@ export class StreamerService {
         this.audioOnly = audioOnly;
         this.saveSettings();
         logger.info(`Audio-only mode: ${audioOnly ? 'enabled' : 'disabled (video mode)'}`);
+    }
+
+    public getUseThumbnail(): boolean {
+        return this.useThumbnail;
+    }
+
+    public setUseThumbnail(use: boolean): void {
+        this.useThumbnail = use;
+        this.saveSettings();
+        logger.info(`Thumbnail stream: ${use ? 'enabled' : 'disabled'}`);
     }
 
     /**

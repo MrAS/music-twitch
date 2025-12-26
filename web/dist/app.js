@@ -216,6 +216,48 @@ async function toggleVideoMode() {
     }
 }
 
+// Thumbnail Stream Toggle
+let thumbStreamEnabled = false;
+
+async function loadThumbStreamStatus() {
+    try {
+        const data = await api('GET', '/thumbnail-stream');
+        thumbStreamEnabled = data.enabled;
+        updateThumbStreamUI();
+    } catch (err) {
+        console.error('Failed to load thumbnail stream status', err);
+    }
+}
+
+function updateThumbStreamUI() {
+    const btn = document.getElementById('thumbStreamBtn');
+    const status = document.getElementById('thumbStreamStatus');
+    if (btn && status) {
+        if (thumbStreamEnabled) {
+            btn.textContent = 'Disable';
+            btn.classList.add('active');
+            status.textContent = 'On';
+            status.style.color = '#2ecc71';
+        } else {
+            btn.textContent = 'Enable';
+            btn.classList.remove('active');
+            status.textContent = 'Off';
+            status.style.color = '';
+        }
+    }
+}
+
+async function toggleThumbnailStream() {
+    try {
+        const endpoint = thumbStreamEnabled ? '/thumbnail-stream/disable' : '/thumbnail-stream/enable';
+        await api('POST', endpoint);
+        thumbStreamEnabled = !thumbStreamEnabled;
+        updateThumbStreamUI();
+    } catch (err) {
+        alert('Failed to toggle thumbnail stream');
+    }
+}
+
 function addInsightEntry(data) {
     const feed = document.getElementById('insightsFeed');
     if (!feed) return;
