@@ -231,14 +231,17 @@ export class StreamerService {
                 '-i', filePath, // Audio input
                 ...videoFilterArgs,
                 '-c:v', 'libx264',
-                '-tune', 'stillimage', // Optimize for static image
-                '-preset', 'ultrafast', // Fast encoding for still image
-                '-b:v', '500k', // Low bitrate for still image
-                '-maxrate', '500k',
-                '-bufsize', '1000k',
+                '-profile:v', 'baseline', // Better RTMP compatibility
+                '-level', '3.1',
+                '-preset', 'veryfast',
+                '-b:v', '1000k', // Video bitrate
+                '-maxrate', '1000k',
+                '-bufsize', '2000k',
                 '-pix_fmt', 'yuv420p',
                 '-r', '30', // Force 30fps
                 '-g', '60', // Keyframe every 2 seconds
+                '-keyint_min', '60',
+                '-sc_threshold', '0', // Disable scene change detection
                 '-c:a', 'aac',
                 '-b:a', preset.audioBitrate === '0' ? '128k' : preset.audioBitrate,
                 '-ar', '44100',
@@ -247,7 +250,6 @@ export class StreamerService {
                 '-map', '0:v', // Use video from first input
                 '-map', '1:a', // Use audio from second input (file)
                 '-f', 'flv',
-                '-flvflags', 'no_duration_filesize', // Better FLV compatibility
                 this.rtmpUrl
             ];
         } else if (preset.preset === 'copy') {
