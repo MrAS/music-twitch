@@ -4,11 +4,22 @@ import { StreamerService } from './streamer';
 import { config } from '../config';
 import { insightsTracker } from './progress';
 import winston from 'winston';
+import * as fs from 'fs-extra';
+import * as path from 'path';
 
 const logger = winston.createLogger({
     level: 'info',
     transports: [new winston.transports.Console()],
 });
+
+const STATE_FILE = './queue-state.json';
+
+export interface QueueState {
+    queue: EnqueuedItem[];
+    current: EnqueuedItem | null;
+    lastPlayedVideoId: string;
+    suggestionsEnabled: boolean;
+}
 
 export interface AutoPlaylistConfig {
     enabled: boolean;
@@ -38,9 +49,50 @@ export class QueueService {
         private downloader: DownloaderService,
         private streamer: StreamerService
     ) {
+        // Load saved state on startup
+        this.loadState();
+
         // Start standby video on initialization if configured
         if (config.system.standbyVideo) {
             this.playStandby();
+        }
+    }
+
+    // ===== STATE PERSISTENCE =====
+    private saveState(): void {
+        try {
+            const state: QueueState = {
+                queue: this.queue,
+                current: this.current,
+                lastPlayedVideoId: this.lastPlayedVideoId,
+                suggestionsEnabled: this.autoPlaylist.useYouTubeSuggestions
+            };
+            fs.writeJsonSync(STATE_FILE, state);
+            logger.debug('Queue state saved');
+        } catch (error) {
+            logger.warn('Failed to save queue state', error);
+        }
+    }
+
+    private loadState(): void {
+        try {
+            if (fs.existsSync(STATE_FILE)) {
+                const state: QueueState = fs.readJsonSync(STATE_FILE);
+                this.queue = state.queue || [];
+                this.current = state.current;
+                this.lastPlayedVideoId = state.lastPlayedVideoId || '';
+                this.autoPlaylist.useYouTubeSuggestions = state.suggestionsEnabled || false;
+                logger.info(`Loaded queue state: ${this.queue.length} items in queue`);
+
+                // If there was a current item, add it back to front of queue
+                if (this.current) {
+                    this.queue.unshift(this.current);
+                    this.current = null;
+                    logger.info(`Restored interrupted song to queue`);
+                }
+            }
+        } catch (error) {
+            logger.warn('Could not load queue state, starting fresh');
         }
     }
 
@@ -59,6 +111,9 @@ export class QueueService {
             user,
             queueLength: this.queue.length
         });
+
+        // Save state after queue change
+        this.saveState();
 
         // If not playing real content, start immediately
         if ((!this.current || this.isPlayingStandby) && !this.isProcessing) {
@@ -102,6 +157,7 @@ export class QueueService {
         this.autoPlaylist.useYouTubeSuggestions = true;
         this.autoPlaylist.playedSongs.clear();
         logger.info('YouTube suggestions mode enabled');
+        this.saveState();
     }
 
     public disableYouTubeSuggestions(): void {
@@ -110,6 +166,7 @@ export class QueueService {
             this.autoPlaylist.enabled = false;
         }
         logger.info('YouTube suggestions mode disabled');
+        this.saveState();
     }
 
     public isYouTubeSuggestionsEnabled(): boolean {
@@ -137,6 +194,7 @@ export class QueueService {
         await this.streamer.stop();
         insightsTracker.queueEvent('skipped', { title: skippedTitle });
         this.current = null;
+        this.saveState();
         await this.playNext();
     }
 
