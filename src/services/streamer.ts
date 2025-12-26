@@ -616,7 +616,10 @@ export class StreamerService {
                         const hours = parseInt(timeMatch[1]);
                         const minutes = parseInt(timeMatch[2]);
                         const seconds = parseInt(timeMatch[3]);
-                        this.currentPosition = hours * 3600 + minutes * 60 + seconds;
+                        const centiseconds = parseInt(timeMatch[4]);
+
+                        // Store with millisecond precision
+                        this.currentPosition = hours * 3600 + minutes * 60 + seconds + (centiseconds / 100);
                     }
 
                     // Parse FFmpeg output for insights
