@@ -79,7 +79,9 @@ export class TwitchBot {
 
     private async handleMessage(channel: string, tags: tmi.ChatUserstate, msg: string, self: boolean) {
         if (self) return;
-        if (!msg.startsWith('@')) return;
+
+        // Support both @ and ! prefixes
+        if (!msg.startsWith('@') && !msg.startsWith('!')) return;
 
         const args = msg.slice(1).split(' ');
         const command = args.shift()?.toLowerCase();
@@ -93,6 +95,9 @@ export class TwitchBot {
         const isAllowed = isMod || isInAllowedList;
 
         switch (command) {
+            case 'help':
+                this.handleHelp(channel);
+                break;
             case 'play':
                 if (!isAllowed) return;
                 this.logCommand(user, 'play', args.join(' '), 'Play from catalog');
@@ -109,6 +114,8 @@ export class TwitchBot {
                 break;
             case 'yt1': case 'yt2': case 'yt3': case 'yt4': case 'yt5':
             case 'yt6': case 'yt7': case 'yt8': case 'yt9': case 'yt10':
+            case '1': case '2': case '3': case '4': case '5':
+            case '6': case '7': case '8': case '9': case '10':
                 if (!isAllowed) return;
                 const num = parseInt(command!.replace('yt', ''));
                 this.handleYouTubeSelect(channel, num, user);
@@ -136,6 +143,10 @@ export class TwitchBot {
                 this.handleAIPlaylist(channel, args.join(' '), user);
                 break;
         }
+    }
+
+    private handleHelp(channel: string) {
+        this.client.say(channel, '🎵 Commands: !yt <search> | !1-10 (select) | !skip | !queue | !now | !playlist <mood>');
     }
 
     private handlePlay(channel: string, keywords: string, user: string) {
