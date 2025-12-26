@@ -331,24 +331,26 @@ export class StreamerService {
         let args: string[];
 
         if (isAudio) {
-            // For audio-only files, use concat demuxer (matches working manual command)
-            // ffmpeg -re -f concat -safe 0 -i playlist.txt -c:a aac -b:a 128k -ar 44100 -f flv rtmp://...
+            // For audio-only files, we need to generate a video track (RTMP requires video)
+            // Use a black background or cover image
             logger.info(`Streaming audio-only: ${filePath}`);
 
-            // Create a temporary playlist with just this file
-            const tempPlaylist = path.join(config.system.cacheDir, 'temp_playlist.txt');
-            fs.writeFileSync(tempPlaylist, `file '${filePath}'`);
+            // Escape the file path for FFmpeg
+            const escapedFilePath = filePath.replace(/\\/g, '/');
 
             args = [
                 '-re', // Read at native frame rate
-                '-f', 'concat',
-                '-safe', '0',
-                '-i', tempPlaylist,
+                '-f', 'lavfi', '-i', 'color=c=black:s=1280x720:r=30', // Black video background
+                '-i', escapedFilePath,
+                '-c:v', 'libx264',
+                '-preset', 'ultrafast',
+                '-tune', 'stillimage',
+                '-b:v', '500k',
                 '-c:a', 'aac',
                 '-b:a', '192k',
                 '-ar', '48000',
+                '-shortest', // End when audio ends
                 '-f', 'flv',
-                '-flvflags', 'no_duration_filesize', // Low-latency
                 this.rtmpUrl
             ];
         } else if (preset.preset === 'copy') {
