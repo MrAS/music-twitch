@@ -510,14 +510,23 @@ export class StreamerService {
 
             this.currentProcess.stderr?.on('data', (data: Buffer) => {
                 const line = data.toString();
-                // Store last 10 lines of stderr for error diagnosis
+                // Store last 30 lines of stderr for error diagnosis
                 stderrBuffer.push(line);
-                if (stderrBuffer.length > 10) stderrBuffer.shift();
+                if (stderrBuffer.length > 30) stderrBuffer.shift();
+
+                // Log error lines immediately
+                if (line.includes('error') || line.includes('Error') ||
+                    line.includes('failed') || line.includes('Failed') ||
+                    line.includes('Broken pipe') || line.includes('Connection')) {
+                    logger.error(`FFmpeg ERROR: ${line}`);
+                }
 
                 // Parse FFmpeg output for insights
                 insightsTracker.parseFFmpegOutput(line);
-                // Log ALL output for debugging
-                logger.info(`FFmpeg: ${line.substring(0, 200)}`);
+                // Log progress
+                if (line.includes('frame=') || line.includes('time=')) {
+                    logger.info(`FFmpeg: ${line.substring(0, 200)}`);
+                }
             });
 
             this.currentProcess.on('close', (code) => {
