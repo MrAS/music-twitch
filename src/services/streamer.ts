@@ -328,9 +328,10 @@ export class StreamerService {
                 '-safe', '0',
                 '-i', tempPlaylist,
                 '-c:a', 'aac',
-                '-b:a', '128k',
-                '-ar', '44100',
+                '-b:a', '192k',
+                '-ar', '48000',
                 '-f', 'flv',
+                '-flvflags', 'no_duration_filesize', // Low-latency
                 this.rtmpUrl
             ];
         } else if (preset.preset === 'copy') {
@@ -341,8 +342,10 @@ export class StreamerService {
                 '-i', filePath,
                 '-c:v', 'copy',
                 '-c:a', 'aac',
-                '-b:a', '128k',
+                '-b:a', '192k',
+                '-ar', '48000',
                 '-f', 'flv',
+                '-flvflags', 'no_duration_filesize', // Low-latency
                 this.rtmpUrl
             ];
         } else {
@@ -360,9 +363,9 @@ export class StreamerService {
                 '-g', '50',
                 '-c:a', 'aac',
                 '-b:a', preset.audioBitrate,
-                '-ar', '44100',
+                '-ar', '48000',
                 '-f', 'flv',
-                '-tls_verify', '0', // Disable TLS verification for compatibility
+                '-flvflags', 'no_duration_filesize', // Low-latency
                 this.rtmpUrl
             ];
         }
