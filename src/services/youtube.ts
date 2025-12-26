@@ -38,7 +38,7 @@ function checkCookiesConfig(): { configured: boolean; valid: boolean; message: s
             message: 'YOUTUBE_COOKIES environment variable not set. Run ./setup-youtube-cookies.sh to configure.'
         };
     }
-    
+
     if (!fs.existsSync(COOKIES_FILE)) {
         return {
             configured: true,
@@ -46,7 +46,7 @@ function checkCookiesConfig(): { configured: boolean; valid: boolean; message: s
             message: `Cookies file not found: ${COOKIES_FILE}. Please export cookies from your browser.`
         };
     }
-    
+
     return {
         configured: true,
         valid: true,
@@ -76,21 +76,23 @@ export class YouTubeService {
     }
 
     /**
-     * Check if a video is already cached
+     * Check if a video is already cached (checks both .m4a and .mp4)
      */
     public isCached(videoId: string): boolean {
-        const filename = `yt_${videoId}.mp4`;
-        const filePath = path.resolve(config.system.cacheDir, filename);
-        return fs.existsSync(filePath);
+        const m4aPath = path.resolve(config.system.cacheDir, `yt_${videoId}.m4a`);
+        const mp4Path = path.resolve(config.system.cacheDir, `yt_${videoId}.mp4`);
+        return fs.existsSync(m4aPath) || fs.existsSync(mp4Path);
     }
 
     /**
-     * Get cached file path if exists
+     * Get cached file path if exists (checks both .m4a and .mp4)
      */
     public getCachedPath(videoId: string): string | null {
-        const filename = `yt_${videoId}.mp4`;
-        const filePath = path.resolve(config.system.cacheDir, filename);
-        return fs.existsSync(filePath) ? filePath : null;
+        const m4aPath = path.resolve(config.system.cacheDir, `yt_${videoId}.m4a`);
+        if (fs.existsSync(m4aPath)) return m4aPath;
+        const mp4Path = path.resolve(config.system.cacheDir, `yt_${videoId}.mp4`);
+        if (fs.existsSync(mp4Path)) return mp4Path;
+        return null;
     }
 
     /**
@@ -163,18 +165,25 @@ export class YouTubeService {
 
     /**
      * Download a YouTube video by URL and return the file path
+     * Downloads audio-only (M4A) to avoid merge issues. The streamer generates black video.
      */
     public async download(videoId: string, url: string): Promise<string> {
-        const filename = `yt_${videoId}.mp4`;
+        // Use .m4a extension for audio-only downloads
+        const filename = `yt_${videoId}.m4a`;
         const filePath = path.resolve(config.system.cacheDir, filename);
 
-        // Check if already cached
+        // Check if already cached (also check for old .mp4 files)
         if (fs.existsSync(filePath)) {
-            logger.info(`YouTube video cached: ${filePath}`);
+            logger.info(`YouTube audio cached: ${filePath}`);
             return filePath;
         }
+        const mp4Path = path.resolve(config.system.cacheDir, `yt_${videoId}.mp4`);
+        if (fs.existsSync(mp4Path)) {
+            logger.info(`YouTube video cached: ${mp4Path}`);
+            return mp4Path;
+        }
 
-        logger.info(`Downloading YouTube video: ${url}`);
+        logger.info(`Downloading YouTube audio: ${url}`);
 
         // Import progress tracker
         const { progressTracker } = require('./progress');
@@ -184,9 +193,9 @@ export class YouTubeService {
         progressTracker.start(title);
 
         try {
-            // Use execa with pipe to track progress
+            // Download audio-only (no merge needed, much more reliable)
             const subprocess = execa(YT_DLP_PATH, [
-                '-f', 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
+                '-f', 'bestaudio[ext=m4a]/bestaudio/best',
                 '-o', filePath,
                 '--no-playlist',
                 '--newline',  // Important for progress parsing
