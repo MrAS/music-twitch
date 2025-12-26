@@ -519,7 +519,12 @@ export class StreamerService {
                     }
                 }
 
-                // Build args - exact match to working manual command
+                // Build scaling filter based on preset
+                const width = preset.width || 1280;
+                const height = preset.height || 720;
+                const filter = `scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2`;
+
+                // Build args - exact match to working manual command + stability settings
                 args = [
                     ...videoSource, // [-loop, 1, -framerate, 30, -i, URL] or lavfi
                     ...seekArgs, // Seek to resume position
@@ -529,9 +534,14 @@ export class StreamerService {
                     '-c:v', 'libx264',
                     '-preset', 'ultrafast',
                     '-tune', 'stillimage',
-                    '-vf', 'scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2',
+                    '-pix_fmt', 'yuv420p', // Critical for player compatibility
+                    '-b:v', preset.videoBitrate,
+                    '-maxrate', preset.videoBitrate,
+                    '-bufsize', '2000k', // Good buffer size for stability
+                    '-g', '60', // Keyframe interval (2s at 30fps)
+                    '-vf', filter,
                     '-c:a', 'aac',
-                    '-b:a', '192k',
+                    '-b:a', preset.audioBitrate,
                     '-ar', '48000',
                     '-shortest', // End when audio ends
                     '-f', 'flv',
