@@ -58,6 +58,16 @@
                     </div>
                 </div>
 
+                <!-- Play URL Section -->
+                <div class="play-url-section">
+                    <h3>▶️ Play YouTube</h3>
+                    <div class="play-url-controls">
+                        <input type="text" id="playUrlInput" placeholder="YouTube URL or search term..." />
+                        <button onclick="playUrl()" class="success">▶ Play</button>
+                    </div>
+                    <span id="playUrlStatus" class="play-status"></span>
+                </div>
+
                 <!-- Download Progress Section -->
                 <div class="download-section" id="downloadSection" style="display: none;">
                     <h3>⬇️ Download Progress</h3>
@@ -97,6 +107,20 @@
                         </select>
                         <span id="qualityInfo" class="quality-info"></span>
                     </div>
+                </div>
+
+                <!-- Cover Image Section -->
+                <div class="cover-section">
+                    <h3>🖼️ Cover Image (Audio Streams)</h3>
+                    <p class="section-desc">Set a background image for audio-only streams. Leave empty for black
+                        background.</p>
+                    <div class="cover-controls">
+                        <input type="text" id="coverImagePath"
+                            placeholder="Path to image (e.g., /root/music-twitch/cover.jpg)" />
+                        <button onclick="setCoverImage()">Set</button>
+                        <button onclick="clearCoverImage()" class="danger">Clear</button>
+                    </div>
+                    <span id="coverInfo" class="cover-info"></span>
                 </div>
 
                 <!-- AI Playlist Section -->

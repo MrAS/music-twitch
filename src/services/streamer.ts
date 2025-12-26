@@ -92,12 +92,14 @@ const SETTINGS_FILE = './stream-settings.json';
 export interface StreamSettings {
     quality: string;
     customBitrate?: string;
+    coverImage?: string; // Path to cover image for audio streams
 }
 
 export class StreamerService {
     private currentProcess: ChildProcess | null = null;
     private rtmpUrl: string;
     private currentQuality: string = '720p';
+    private coverImage: string = ''; // Path to cover image for audio streams
 
     constructor() {
         // Get RTMP URL from env or use default
@@ -113,6 +115,10 @@ export class StreamerService {
                     this.currentQuality = settings.quality;
                     logger.info(`Loaded quality setting: ${this.currentQuality}`);
                 }
+                if (settings.coverImage) {
+                    this.coverImage = settings.coverImage;
+                    logger.info(`Loaded cover image: ${this.coverImage}`);
+                }
             }
         } catch (error) {
             logger.warn('Could not load stream settings, using defaults');
@@ -121,7 +127,10 @@ export class StreamerService {
 
     private saveSettings(): void {
         try {
-            const settings: StreamSettings = { quality: this.currentQuality };
+            const settings: StreamSettings = {
+                quality: this.currentQuality,
+                coverImage: this.coverImage || undefined
+            };
             fs.writeJsonSync(SETTINGS_FILE, settings);
         } catch (error) {
             logger.error('Could not save stream settings', error);
@@ -144,6 +153,21 @@ export class StreamerService {
 
     public getPresets(): { [key: string]: QualityPreset } {
         return QUALITY_PRESETS;
+    }
+
+    public getCoverImage(): string {
+        return this.coverImage;
+    }
+
+    public setCoverImage(imagePath: string): boolean {
+        if (imagePath && !fs.existsSync(imagePath)) {
+            logger.warn(`Cover image not found: ${imagePath}`);
+            return false;
+        }
+        this.coverImage = imagePath;
+        this.saveSettings();
+        logger.info(`Cover image set to: ${imagePath || '(none - black background)'}`);
+        return true;
     }
 
     /**
@@ -173,27 +197,57 @@ export class StreamerService {
         let args: string[];
 
         if (isAudio) {
-            // For audio-only files, generate a black video background
+            // For audio-only files, use cover image or generate black video background
             const resolution = preset.width > 0 ? `${preset.width}x${preset.height}` : '1280x720';
+            const [width, height] = resolution.split('x').map(Number);
+
+            // Build video input args based on whether we have a cover image
+            let videoInputArgs: string[];
+            let videoFilterArgs: string[];
+
+            if (this.coverImage && fs.existsSync(this.coverImage)) {
+                // Use cover image with loop
+                logger.info(`Using cover image: ${this.coverImage}`);
+                videoInputArgs = [
+                    '-loop', '1',
+                    '-i', this.coverImage
+                ];
+                videoFilterArgs = [
+                    '-vf', `scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2,format=yuv420p`
+                ];
+            } else {
+                // Generate black background
+                videoInputArgs = [
+                    '-f', 'lavfi',
+                    '-i', `color=c=black:s=${resolution}:r=30`
+                ];
+                videoFilterArgs = [];
+            }
+
             args = [
                 '-re', // Read at native frame rate
-                ...(loop ? ['-stream_loop', '-1'] : []), // Loop audio if specified
-                '-f', 'lavfi',
-                '-i', `color=c=black:s=${resolution}:r=30`, // Generate black video
+                ...videoInputArgs,
+                ...(loop ? ['-stream_loop', '-1'] : []),
                 '-i', filePath, // Audio input
-                '-shortest', // Stop when shortest input ends
+                ...videoFilterArgs,
                 '-c:v', 'libx264',
-                '-preset', preset.preset === 'copy' ? 'veryfast' : preset.preset,
-                '-maxrate', preset.videoBitrate === '0' ? '2000k' : preset.videoBitrate,
-                '-bufsize', preset.videoBitrate === '0' ? '4000k' : `${parseInt(preset.videoBitrate) * 2}k`,
+                '-tune', 'stillimage', // Optimize for static image
+                '-preset', 'ultrafast', // Fast encoding for still image
+                '-b:v', '500k', // Low bitrate for still image
+                '-maxrate', '500k',
+                '-bufsize', '1000k',
                 '-pix_fmt', 'yuv420p',
-                '-g', '60',
+                '-r', '30', // Force 30fps
+                '-g', '60', // Keyframe every 2 seconds
                 '-c:a', 'aac',
                 '-b:a', preset.audioBitrate === '0' ? '128k' : preset.audioBitrate,
                 '-ar', '44100',
-                '-map', '0:v', // Use video from first input (lavfi)
+                '-ac', '2', // Stereo audio
+                '-shortest', // Stop when shortest input ends (for non-loop)
+                '-map', '0:v', // Use video from first input
                 '-map', '1:a', // Use audio from second input (file)
                 '-f', 'flv',
+                '-flvflags', 'no_duration_filesize', // Better FLV compatibility
                 this.rtmpUrl
             ];
         } else if (preset.preset === 'copy') {

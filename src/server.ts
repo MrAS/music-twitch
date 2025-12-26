@@ -302,6 +302,29 @@ export function createServer(): express.Application {
         }
     });
 
+    // Cover image settings endpoints
+    app.get('/api/admin/cover', (req, res) => {
+        const { streamer } = getServices();
+        res.json({
+            coverImage: streamer.getCoverImage() || null
+        });
+    });
+
+    app.post('/api/admin/cover', (req, res) => {
+        const { streamer } = getServices();
+        const { coverImage } = req.body;
+
+        // Allow clearing the cover image with empty string or null
+        const imagePath = coverImage || '';
+        const success = streamer.setCoverImage(imagePath);
+
+        if (success || !imagePath) {
+            res.json({ success: true, coverImage: imagePath || null });
+        } else {
+            res.status(400).json({ error: 'Cover image file not found' });
+        }
+    });
+
     // AI Playlist endpoints
     app.post('/api/admin/playlist/generate', async (req, res) => {
         const { description, count = 5, mode = 'shuffle' } = req.body;
@@ -320,6 +343,53 @@ export function createServer(): express.Application {
             res.json(playlist);
         } catch (error: any) {
             res.status(500).json({ error: error.message || 'Failed to generate playlist' });
+        }
+    });
+
+    // Play YouTube URL directly
+    app.post('/api/admin/play/url', async (req, res) => {
+        const { url } = req.body;
+        const { queue, youtube } = getServices();
+
+        if (!url) {
+            return res.status(400).json({ error: 'URL required' });
+        }
+
+        try {
+            // Extract video ID from URL or search for it
+            let result;
+            if (url.includes('youtube.com') || url.includes('youtu.be')) {
+                // Extract video ID from URL
+                const videoIdMatch = url.match(/(?:v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+                if (videoIdMatch) {
+                    result = {
+                        id: videoIdMatch[1],
+                        url: `https://www.youtube.com/watch?v=${videoIdMatch[1]}`,
+                        title: `YouTube Video ${videoIdMatch[1]}`
+                    };
+                }
+            }
+
+            // If not a direct URL, search for it
+            if (!result) {
+                result = await youtube.search(url);
+            }
+
+            if (!result) {
+                return res.status(404).json({ error: 'Video not found' });
+            }
+
+            // Download and queue
+            const filePath = await youtube.ensureDownloaded(result.id, result.url);
+            queue.enqueue({
+                key: `yt_${result.id}`,
+                title: result.title,
+                source: { type: 'local_file', path: filePath }
+            }, 'Admin (Web)');
+
+            res.json({ success: true, title: result.title, id: result.id });
+        } catch (error: any) {
+            res.status(500).json({ error: error.message || 'Failed to play URL' });
         }
     });
 

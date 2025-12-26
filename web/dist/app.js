@@ -283,8 +283,9 @@ async function loadStatus() {
         document.getElementById('coreStatus').textContent = data.coreReachable ? '🟢 Reachable' : '🔴 Unreachable';
         document.getElementById('currentPlaying').textContent = data.currentPlaying?.title || 'Nothing playing';
 
-        // Load quality settings
+        // Load quality and cover settings
         loadQuality();
+        loadCover();
     } catch (err) {
         console.error('Failed to load status', err);
     }
@@ -318,6 +319,82 @@ async function changeQuality(quality) {
         }
     } catch (err) {
         alert('Failed to change quality');
+    }
+}
+
+// Cover Image Settings
+async function loadCover() {
+    try {
+        const data = await api('GET', '/cover');
+        const input = document.getElementById('coverImagePath');
+        const infoEl = document.getElementById('coverInfo');
+
+        if (input && data.coverImage) {
+            input.value = data.coverImage;
+        }
+
+        if (infoEl) {
+            infoEl.textContent = data.coverImage
+                ? `Current: ${data.coverImage}`
+                : 'Using black background';
+        }
+    } catch (err) {
+        console.error('Failed to load cover settings', err);
+    }
+}
+
+async function setCoverImage() {
+    const input = document.getElementById('coverImagePath');
+    const coverImage = input.value.trim();
+
+    try {
+        const data = await api('POST', '/cover', { coverImage });
+        if (data.success) {
+            loadCover();
+            alert('Cover image set! Will apply on next song.');
+        }
+    } catch (err) {
+        alert('Failed to set cover image: ' + (err.message || 'File not found'));
+    }
+}
+
+async function clearCoverImage() {
+    try {
+        await api('POST', '/cover', { coverImage: '' });
+        document.getElementById('coverImagePath').value = '';
+        loadCover();
+        alert('Cover image cleared. Using black background.');
+    } catch (err) {
+        alert('Failed to clear cover image');
+    }
+}
+
+// Play YouTube URL
+async function playUrl() {
+    const input = document.getElementById('playUrlInput');
+    const statusEl = document.getElementById('playUrlStatus');
+    const url = input.value.trim();
+
+    if (!url) {
+        alert('Please enter a YouTube URL or search term');
+        return;
+    }
+
+    statusEl.textContent = 'Loading...';
+    statusEl.style.color = '#f39c12';
+
+    try {
+        const data = await api('POST', '/play/url', { url });
+        if (data.success) {
+            statusEl.textContent = `✓ Added: ${data.title}`;
+            statusEl.style.color = '#27ae60';
+            input.value = '';
+            // Refresh status to update queue count
+            loadStatus();
+        }
+    } catch (err) {
+        statusEl.textContent = `✗ ${err.message || 'Failed to play'}`;
+        statusEl.style.color = '#e74c3c';
     }
 }
 
