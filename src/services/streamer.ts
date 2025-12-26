@@ -110,6 +110,7 @@ export class StreamerService {
     private coverImage: string = ''; // Path to cover image for audio streams
     private audioOnly: boolean = true; // Default to audio-only
     private useThumbnail: boolean = false; // Use YouTube thumbnail as background
+    private isStarting: boolean = false; // Lock to prevent double-starts
 
     constructor() {
         // Get RTMP URL from env or use default
@@ -408,153 +409,164 @@ export class StreamerService {
      * Stream a local file to RTMPS using FFmpeg
      */
     public async streamFile(filePath: string, loop: boolean = false): Promise<void> {
-        // Stop any existing stream
-        await this.stop();
+        // Prevent double-starts
+        if (this.isStarting) {
+            logger.warn('Stream already starting, ignoring duplicate request');
+            return;
+        }
+        this.isStarting = true;
 
-        // Wait for RTMP connection to be released by Restreamer
-        logger.info('Waiting for RTMP connection to be released...');
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        try {
+            // Stop any existing stream
+            await this.stop();
 
-        const isAudio = this.isAudioFile(filePath);
-        const preset = QUALITY_PRESETS[this.currentQuality] || QUALITY_PRESETS['720p'];
+            // Wait for RTMP connection to be released by Restreamer
+            logger.info('Waiting for RTMP connection to be released (5s)...');
+            await new Promise(resolve => setTimeout(resolve, 5000));
 
-        logger.info(`Starting stream: ${filePath} -> ${this.rtmpUrl} (quality: ${preset.name}, audio-only: ${isAudio})`);
+            const isAudio = this.isAudioFile(filePath);
+            const preset = QUALITY_PRESETS[this.currentQuality] || QUALITY_PRESETS['720p'];
 
-        // Emit stream starting event
-        const streamTitle = path.basename(filePath);
-        insightsTracker.startStream(streamTitle);
+            logger.info(`Starting stream: ${filePath} -> ${this.rtmpUrl} (quality: ${preset.name}, audio-only: ${isAudio})`);
 
-        let args: string[];
+            // Emit stream starting event
+            const streamTitle = path.basename(filePath);
+            insightsTracker.startStream(streamTitle);
 
-        if (isAudio) {
-            // For audio-only files, we need to generate a video track (RTMP requires video)
-            logger.info(`Streaming audio-only: ${filePath}`);
+            let args: string[];
 
-            // Try to get thumbnail URL if enabled
-            let videoSource: string[] = ['-f', 'lavfi', '-i', 'color=c=black:s=1280x720:r=30:d=99999'];
+            if (isAudio) {
+                // For audio-only files, we need to generate a video track (RTMP requires video)
+                logger.info(`Streaming audio-only: ${filePath}`);
 
-            if (this.useThumbnail) {
-                const thumbUrl = this.getThumbnailUrlForFile(filePath);
-                if (thumbUrl) {
-                    logger.info(`Using thumbnail URL as background: ${thumbUrl}`);
-                    // Loop the thumbnail image from URL with proper framerate
-                    videoSource = ['-loop', '1', '-framerate', '30', '-i', thumbUrl];
-                } else {
-                    logger.warn('No thumbnail URL available, using black background');
+                // Try to get thumbnail URL if enabled
+                let videoSource: string[] = ['-f', 'lavfi', '-i', 'color=c=black:s=1280x720:r=30:d=99999'];
+
+                if (this.useThumbnail) {
+                    const thumbUrl = this.getThumbnailUrlForFile(filePath);
+                    if (thumbUrl) {
+                        logger.info(`Using thumbnail URL as background: ${thumbUrl}`);
+                        // Loop the thumbnail image from URL with proper framerate
+                        videoSource = ['-loop', '1', '-framerate', '30', '-i', thumbUrl];
+                    } else {
+                        logger.warn('No thumbnail URL available, using black background');
+                    }
                 }
+
+                // Build args - exact match to working manual command
+                args = [
+                    ...videoSource, // [-loop, 1, -framerate, 30, -i, URL] or lavfi
+                    '-i', filePath,
+                    '-map', '0:v', // Use video from image/lavfi
+                    '-map', '1:a', // Use audio from file
+                    '-c:v', 'libx264',
+                    '-preset', 'ultrafast',
+                    '-tune', 'stillimage',
+                    '-vf', 'scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2',
+                    '-c:a', 'aac',
+                    '-b:a', '192k',
+                    '-ar', '48000',
+                    '-shortest', // End when audio ends
+                    '-f', 'flv',
+                    this.rtmpUrl
+                ];
+            } else if (preset.preset === 'copy') {
+                // Source quality - just copy streams
+                args = [
+                    '-re', // Read at native frame rate
+                    ...(loop ? ['-stream_loop', '-1'] : []), // Loop if specified
+                    '-i', filePath,
+                    '-c:v', 'copy',
+                    '-c:a', 'aac',
+                    '-b:a', '192k',
+                    '-ar', '48000',
+                    '-f', 'flv',
+                    '-flvflags', 'no_duration_filesize', // Low-latency
+                    this.rtmpUrl
+                ];
+            } else {
+                // For video files, stream with quality settings
+                args = [
+                    '-re', // Read at native frame rate
+                    ...(loop ? ['-stream_loop', '-1'] : []), // Loop if specified
+                    '-i', filePath,
+                    '-vf', `scale=${preset.width}:${preset.height}:force_original_aspect_ratio=decrease,pad=${preset.width}:${preset.height}:(ow-iw)/2:(oh-ih)/2`,
+                    '-c:v', 'libx264',
+                    '-preset', preset.preset,
+                    '-maxrate', preset.videoBitrate,
+                    '-bufsize', `${parseInt(preset.videoBitrate) * 2}k`,
+                    '-pix_fmt', 'yuv420p',
+                    '-g', '50',
+                    '-c:a', 'aac',
+                    '-b:a', preset.audioBitrate,
+                    '-ar', '48000',
+                    '-f', 'flv',
+                    '-flvflags', 'no_duration_filesize', // Low-latency
+                    this.rtmpUrl
+                ];
             }
 
-            // Build args - exact match to working manual command
-            args = [
-                ...videoSource, // [-loop, 1, -framerate, 30, -i, URL] or lavfi
-                '-i', filePath,
-                '-map', '0:v', // Use video from image/lavfi
-                '-map', '1:a', // Use audio from file
-                '-c:v', 'libx264',
-                '-preset', 'ultrafast',
-                '-tune', 'stillimage',
-                '-vf', 'scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2',
-                '-c:a', 'aac',
-                '-b:a', '192k',
-                '-ar', '48000',
-                '-shortest', // End when audio ends
-                '-f', 'flv',
-                this.rtmpUrl
-            ];
-        } else if (preset.preset === 'copy') {
-            // Source quality - just copy streams
-            args = [
-                '-re', // Read at native frame rate
-                ...(loop ? ['-stream_loop', '-1'] : []), // Loop if specified
-                '-i', filePath,
-                '-c:v', 'copy',
-                '-c:a', 'aac',
-                '-b:a', '192k',
-                '-ar', '48000',
-                '-f', 'flv',
-                '-flvflags', 'no_duration_filesize', // Low-latency
-                this.rtmpUrl
-            ];
-        } else {
-            // For video files, stream with quality settings
-            args = [
-                '-re', // Read at native frame rate
-                ...(loop ? ['-stream_loop', '-1'] : []), // Loop if specified
-                '-i', filePath,
-                '-vf', `scale=${preset.width}:${preset.height}:force_original_aspect_ratio=decrease,pad=${preset.width}:${preset.height}:(ow-iw)/2:(oh-ih)/2`,
-                '-c:v', 'libx264',
-                '-preset', preset.preset,
-                '-maxrate', preset.videoBitrate,
-                '-bufsize', `${parseInt(preset.videoBitrate) * 2}k`,
-                '-pix_fmt', 'yuv420p',
-                '-g', '50',
-                '-c:a', 'aac',
-                '-b:a', preset.audioBitrate,
-                '-ar', '48000',
-                '-f', 'flv',
-                '-flvflags', 'no_duration_filesize', // Low-latency
-                this.rtmpUrl
-            ];
+            return new Promise((resolve, reject) => {
+                this.currentProcess = spawn(FFMPEG_PATH, args, {
+                    stdio: ['pipe', 'pipe', 'pipe']
+                });
+
+                this.currentProcess.on('error', (err) => {
+                    logger.error('FFmpeg error:', err);
+                    insightsTracker.streamError(err.message);
+                    reject(err);
+                });
+
+                // Buffer to capture FFmpeg errors
+                let stderrBuffer: string[] = [];
+
+                this.currentProcess.stderr?.on('data', (data: Buffer) => {
+                    const line = data.toString();
+                    // Store last 30 lines of stderr for error diagnosis
+                    stderrBuffer.push(line);
+                    if (stderrBuffer.length > 30) stderrBuffer.shift();
+
+                    // Log error lines immediately
+                    if (line.includes('error') || line.includes('Error') ||
+                        line.includes('failed') || line.includes('Failed') ||
+                        line.includes('Broken pipe') || line.includes('Connection')) {
+                        logger.error(`FFmpeg ERROR: ${line}`);
+                    }
+
+                    // Parse FFmpeg output for insights
+                    insightsTracker.parseFFmpegOutput(line);
+                    // Log progress
+                    if (line.includes('frame=') || line.includes('time=')) {
+                        logger.info(`FFmpeg: ${line.substring(0, 200)}`);
+                    }
+                });
+
+                this.currentProcess.on('close', (code) => {
+                    logger.info(`FFmpeg exited with code ${code}`);
+                    if (code !== 0 && code !== 255) {
+                        logger.error(`FFmpeg stderr (last lines): ${stderrBuffer.join('')}`);
+                    }
+                    this.currentProcess = null;
+                    insightsTracker.stopStream();
+                    if (code === 0 || code === 255) {
+                        resolve();
+                    } else {
+                        insightsTracker.streamError(`FFmpeg exited with code ${code}`);
+                        reject(new Error(`FFmpeg exited with code ${code}`));
+                    }
+                });
+
+                // Give FFmpeg time to start
+                setTimeout(() => {
+                    if (this.currentProcess) {
+                        logger.info('Stream started successfully');
+                        resolve();
+                    }
+                }, 2000);
+            });
+        } finally {
+            this.isStarting = false;
         }
-
-        return new Promise((resolve, reject) => {
-            this.currentProcess = spawn(FFMPEG_PATH, args, {
-                stdio: ['pipe', 'pipe', 'pipe']
-            });
-
-            this.currentProcess.on('error', (err) => {
-                logger.error('FFmpeg error:', err);
-                insightsTracker.streamError(err.message);
-                reject(err);
-            });
-
-            // Buffer to capture FFmpeg errors
-            let stderrBuffer: string[] = [];
-
-            this.currentProcess.stderr?.on('data', (data: Buffer) => {
-                const line = data.toString();
-                // Store last 30 lines of stderr for error diagnosis
-                stderrBuffer.push(line);
-                if (stderrBuffer.length > 30) stderrBuffer.shift();
-
-                // Log error lines immediately
-                if (line.includes('error') || line.includes('Error') ||
-                    line.includes('failed') || line.includes('Failed') ||
-                    line.includes('Broken pipe') || line.includes('Connection')) {
-                    logger.error(`FFmpeg ERROR: ${line}`);
-                }
-
-                // Parse FFmpeg output for insights
-                insightsTracker.parseFFmpegOutput(line);
-                // Log progress
-                if (line.includes('frame=') || line.includes('time=')) {
-                    logger.info(`FFmpeg: ${line.substring(0, 200)}`);
-                }
-            });
-
-            this.currentProcess.on('close', (code) => {
-                logger.info(`FFmpeg exited with code ${code}`);
-                if (code !== 0 && code !== 255) {
-                    logger.error(`FFmpeg stderr (last lines): ${stderrBuffer.join('')}`);
-                }
-                this.currentProcess = null;
-                insightsTracker.stopStream();
-                if (code === 0 || code === 255) {
-                    resolve();
-                } else {
-                    insightsTracker.streamError(`FFmpeg exited with code ${code}`);
-                    reject(new Error(`FFmpeg exited with code ${code}`));
-                }
-            });
-
-            // Give FFmpeg time to start
-            setTimeout(() => {
-                if (this.currentProcess) {
-                    logger.info('Stream started successfully');
-                    resolve();
-                }
-            }, 2000);
-        });
     }
 
     /**
@@ -563,6 +575,8 @@ export class StreamerService {
     public async stop(): Promise<void> {
         if (this.currentProcess) {
             logger.info('Stopping current stream');
+
+            // First try SIGTERM
             this.currentProcess.kill('SIGTERM');
 
             // Wait for process to exit
@@ -571,8 +585,20 @@ export class StreamerService {
                     resolve();
                     return;
                 }
-                this.currentProcess.on('close', () => resolve());
-                setTimeout(() => resolve(), 3000); // Force resolve after 3s
+
+                const timeout = setTimeout(() => {
+                    // Force kill if SIGTERM didn't work
+                    if (this.currentProcess) {
+                        logger.warn('FFmpeg did not exit gracefully, forcing SIGKILL');
+                        this.currentProcess.kill('SIGKILL');
+                    }
+                    resolve();
+                }, 3000);
+
+                this.currentProcess.on('close', () => {
+                    clearTimeout(timeout);
+                    resolve();
+                });
             });
 
             this.currentProcess = null;
