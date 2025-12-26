@@ -197,58 +197,17 @@ export class StreamerService {
         let args: string[];
 
         if (isAudio) {
-            // For audio-only files, use cover image or generate black video background
-            const resolution = preset.width > 0 ? `${preset.width}x${preset.height}` : '1280x720';
-            const [width, height] = resolution.split('x').map(Number);
-
-            // Build video input args based on whether we have a cover image
-            let videoInputArgs: string[];
-            let videoFilterArgs: string[];
-
-            if (this.coverImage && fs.existsSync(this.coverImage)) {
-                // Use cover image with loop
-                logger.info(`Using cover image: ${this.coverImage}`);
-                videoInputArgs = [
-                    '-loop', '1',
-                    '-i', this.coverImage
-                ];
-                videoFilterArgs = [
-                    '-vf', `scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2,format=yuv420p`
-                ];
-            } else {
-                // Generate black background
-                videoInputArgs = [
-                    '-f', 'lavfi',
-                    '-i', `color=c=black:s=${resolution}:r=30`
-                ];
-                videoFilterArgs = [];
-            }
+            // For audio-only files, stream audio directly (no video)
+            // Matches working command: ffmpeg -re -i audio.m4a -c:a aac -b:a 128k -ar 44100 -f flv rtmp://...
+            logger.info(`Streaming audio-only: ${filePath}`);
 
             args = [
                 '-re', // Read at native frame rate
-                ...videoInputArgs,
                 ...(loop ? ['-stream_loop', '-1'] : []),
                 '-i', filePath, // Audio input
-                ...videoFilterArgs,
-                '-c:v', 'libx264',
-                '-profile:v', 'baseline', // Better RTMP compatibility
-                '-level', '3.1',
-                '-preset', 'veryfast',
-                '-b:v', '1000k', // Video bitrate
-                '-maxrate', '1000k',
-                '-bufsize', '2000k',
-                '-pix_fmt', 'yuv420p',
-                '-r', '30', // Force 30fps
-                '-g', '60', // Keyframe every 2 seconds
-                '-keyint_min', '60',
-                '-sc_threshold', '0', // Disable scene change detection
                 '-c:a', 'aac',
-                '-b:a', preset.audioBitrate === '0' ? '128k' : preset.audioBitrate,
+                '-b:a', '128k',
                 '-ar', '44100',
-                '-ac', '2', // Stereo audio
-                '-shortest', // Stop when shortest input ends (for non-loop)
-                '-map', '0:v', // Use video from first input
-                '-map', '1:a', // Use audio from second input (file)
                 '-f', 'flv',
                 this.rtmpUrl
             ];
