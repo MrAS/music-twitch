@@ -69,6 +69,12 @@ export class DownloaderService {
     }
 
     public getDuration(filePath: string): Promise<number> {
+        // Skip non-media files like playlist.txt
+        const ext = path.extname(filePath).toLowerCase();
+        if (ext === '.txt') {
+            return Promise.resolve(0);
+        }
+
         return new Promise((resolve, reject) => {
             ffmpeg.ffprobe(filePath, (err, metadata) => {
                 if (err) return reject(err);
