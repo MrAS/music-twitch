@@ -9,7 +9,18 @@ import { TwitchBot } from './twitch';
 import { createServer, setServices } from './server';
 import { config } from './config';
 
+import { exec } from 'child_process';
+
 async function main() {
+    // Kill any orphaned FFmpeg processes from previous runs to prevent conflicts
+    console.log('Cleaning up orphaned processes...');
+    await new Promise<void>(resolve => {
+        exec('pkill -f ffmpeg', () => {
+            // Ignore errors (e.g. no process found)
+            setTimeout(resolve, 1000); // Wait for cleanup
+        });
+    });
+
     const catalog = new CatalogService();
     const downloader = new DownloaderService();
     const streamer = new StreamerService();
