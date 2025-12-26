@@ -56,6 +56,7 @@
                         </div>
                         <div class="np-controls">
                             <button onclick="skipTrack()" class="btn-skip">⏭️ Skip</button>
+                            <button onclick="killStream()" class="btn-danger">🛑 Stop</button>
                             <button onclick="toggleSuggestions()" id="suggestionsBtn" class="btn-autoplay">🔄
                                 Auto</button>
                         </div>
@@ -115,6 +116,14 @@
                     <div class="action-card">
                         <h4>📡 Status</h4>
                         <p id="botStatus">--</p>
+                    </div>
+                </div>
+
+                <!-- Live Downloads -->
+                <div class="downloads-section">
+                    <h3>⬇️ Active Downloads</h3>
+                    <div class="downloads-list" id="downloadsList">
+                        <div class="download-empty">No active downloads</div>
                     </div>
                 </div>
 

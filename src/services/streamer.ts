@@ -332,25 +332,28 @@ export class StreamerService {
 
         if (isAudio) {
             // For audio-only files, we need to generate a video track (RTMP requires video)
-            // Use a black background or cover image
             logger.info(`Streaming audio-only: ${filePath}`);
-
-            // Escape the file path for FFmpeg
-            const escapedFilePath = filePath.replace(/\\/g, '/');
 
             args = [
                 '-re', // Read at native frame rate
-                '-f', 'lavfi', '-i', 'color=c=black:s=1280x720:r=30', // Black video background
-                '-i', escapedFilePath,
+                '-f', 'lavfi', '-i', 'color=c=black:s=1280x720:r=30:d=99999', // Black video (long duration)
+                '-i', filePath,
+                '-map', '0:v', // Use video from lavfi
+                '-map', '1:a', // Use audio from file
                 '-c:v', 'libx264',
                 '-preset', 'ultrafast',
                 '-tune', 'stillimage',
+                '-g', '60', // Keyframe every 2 seconds
                 '-b:v', '500k',
+                '-maxrate', '500k',
+                '-bufsize', '1000k',
+                '-pix_fmt', 'yuv420p',
                 '-c:a', 'aac',
                 '-b:a', '192k',
                 '-ar', '48000',
                 '-shortest', // End when audio ends
                 '-f', 'flv',
+                '-flvflags', 'no_duration_filesize',
                 this.rtmpUrl
             ];
         } else if (preset.preset === 'copy') {

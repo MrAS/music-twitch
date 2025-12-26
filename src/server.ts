@@ -290,6 +290,17 @@ export function createServer(): express.Application {
         }
     });
 
+    // Stream control endpoints
+    app.post('/api/admin/stream/stop', async (req, res) => {
+        const { streamer } = getServices();
+        try {
+            await streamer.stop();
+            res.json({ success: true, message: 'Stream stopped' });
+        } catch (error: any) {
+            res.status(500).json({ error: error.message || 'Failed to stop stream' });
+        }
+    });
+
     // Play a local file from cache
     app.post('/api/admin/cache/:filename/play', async (req, res) => {
         const fs = await import('fs-extra');

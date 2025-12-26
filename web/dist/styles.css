@@ -268,13 +268,75 @@ body {
 }
 
 .btn-skip,
-.btn-autoplay {
+.btn-autoplay,
+.btn-danger {
     padding: 0.75rem 1.5rem;
     border: none;
     border-radius: 25px;
     font-size: 1rem;
     cursor: pointer;
     transition: all 0.3s;
+}
+
+.btn-danger {
+    background: #c0392b;
+    color: white;
+}
+
+.btn-danger:hover {
+    background: #a93226;
+    transform: scale(1.05);
+}
+
+/* Downloads Section */
+.downloads-section {
+    background: var(--bg-card);
+    border-radius: 12px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+}
+
+.downloads-list {
+    max-height: 150px;
+    overflow-y: auto;
+}
+
+.download-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.5rem;
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 6px;
+    margin-bottom: 0.5rem;
+}
+
+.download-name {
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 0.9rem;
+}
+
+.download-progress {
+    width: 100px;
+    height: 6px;
+    background: #333;
+    border-radius: 3px;
+}
+
+.download-progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--success));
+    border-radius: 3px;
+    transition: width 0.3s;
+}
+
+.download-percent {
+    font-size: 0.8rem;
+    color: var(--success);
+    min-width: 40px;
 }
 
 .btn-skip {

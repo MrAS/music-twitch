@@ -121,6 +121,16 @@ async function skipTrack() {
     }
 }
 
+async function killStream() {
+    if (!confirm('Stop the current stream?')) return;
+    try {
+        await api('POST', '/stream/stop');
+        loadStatus();
+    } catch (err) {
+        alert('Failed to stop stream: ' + (err.message || 'Unknown error'));
+    }
+}
+
 // Toggle YouTube suggestions mode
 let suggestionsEnabled = false;
 
