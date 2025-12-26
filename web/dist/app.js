@@ -949,17 +949,38 @@ async function searchYouTube() {
         }
 
         resultsDiv.innerHTML = searchResults.map((r, i) => `
-            <div class="search-item" onclick="playSearchResult(${i})">
+            <div class="search-item">
                 <img class="search-item-thumb" src="https://i3.ytimg.com/vi/${r.id}/default.jpg" alt="">
                 <div class="search-item-info">
                     <span class="search-item-title">${r.title}</span>
                     ${r.cached ? '<span class="search-item-cached">✓ cached</span>' : ''}
                 </div>
-                <button onclick="event.stopPropagation(); playSearchResult(${i})">▶ Play</button>
+                <div class="search-item-actions">
+                    <button onclick="event.stopPropagation(); addToQueue(${i})" title="Add to Queue">➕</button>
+                    <button onclick="event.stopPropagation(); playSearchResult(${i})" title="Play Now">▶</button>
+                </div>
             </div>
         `).join('');
     } catch (err) {
         resultsDiv.innerHTML = '<div class="search-placeholder">Search failed</div>';
+    }
+}
+
+async function addToQueue(index) {
+    const result = searchResults[index];
+    if (!result) return;
+
+    try {
+        const data = await api('POST', '/queue/add', { videoId: result.id, url: result.url, title: result.title });
+        if (data.success) {
+            loadQueueList();
+            // Show brief feedback
+            const btn = event.target;
+            btn.textContent = '✓';
+            setTimeout(() => btn.textContent = '➕', 1000);
+        }
+    } catch (err) {
+        alert('Failed to add to queue: ' + (err.message || 'Error'));
     }
 }
 

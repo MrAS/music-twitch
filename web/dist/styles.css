@@ -569,15 +569,29 @@ body {
     color: var(--success);
 }
 
+.search-item-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-shrink: 0;
+}
+
 .search-item button {
-    padding: 0.5rem 1rem;
+    padding: 0.5rem 0.75rem;
     background: var(--accent);
     color: white;
     border: none;
     border-radius: 6px;
     cursor: pointer;
-    flex-shrink: 0;
-    margin-left: 0.5rem;
+    font-size: 1rem;
+}
+
+.search-item button:first-child {
+    background: var(--bg-dark);
+    border: 1px solid var(--border);
+}
+
+.search-item button:hover {
+    opacity: 0.8;
 }
 
 /* Quick Actions */
