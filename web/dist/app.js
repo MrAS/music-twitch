@@ -683,6 +683,49 @@ async function coreRestart() {
     alert('Process restarted');
 }
 
+// Update functions
+async function gitPull() {
+    const output = document.getElementById('updateOutput');
+    output.textContent = 'Running git pull...';
+    try {
+        const data = await api('POST', '/update/pull');
+        output.textContent = data.output || 'Done!';
+    } catch (err) {
+        output.textContent = 'Error: ' + (err.message || 'Failed');
+        output.style.color = '#e74c3c';
+    }
+}
+
+async function npmBuild() {
+    const output = document.getElementById('updateOutput');
+    output.textContent = 'Running npm build (this may take a moment)...';
+    try {
+        const data = await api('POST', '/update/build');
+        output.textContent = data.output || 'Done!';
+    } catch (err) {
+        output.textContent = 'Error: ' + (err.message || 'Failed');
+        output.style.color = '#e74c3c';
+    }
+}
+
+async function fullUpdate() {
+    if (!confirm('This will update from Git, rebuild, and restart the bot. Continue?')) return;
+
+    const output = document.getElementById('updateOutput');
+    output.textContent = 'Running full update (git pull + npm build + restart)...';
+    output.style.color = '#2ecc71';
+
+    try {
+        const data = await api('POST', '/update/full');
+        output.textContent = data.output + '\n\n' + (data.restart || '');
+        alert('Update complete! The page will refresh in 5 seconds...');
+        setTimeout(() => location.reload(), 5000);
+    } catch (err) {
+        output.textContent = 'Error: ' + (err.message || 'Failed');
+        output.style.color = '#e74c3c';
+    }
+}
+
 // Auto-refresh status every 5 seconds
 setInterval(() => {
     if (currentPage === 'status') loadStatus();

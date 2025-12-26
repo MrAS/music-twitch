@@ -487,6 +487,53 @@ export function createServer(): express.Application {
         }
     });
 
+    // Update endpoints
+    const { exec } = require('child_process');
+    const execPromise = (cmd: string): Promise<string> => {
+        return new Promise((resolve, reject) => {
+            exec(cmd, { cwd: path.join(__dirname, '..'), maxBuffer: 10 * 1024 * 1024 }, (err: any, stdout: string, stderr: string) => {
+                if (err) reject(new Error(stderr || err.message));
+                else resolve(stdout + (stderr ? `\n${stderr}` : ''));
+            });
+        });
+    };
+
+    app.post('/api/admin/update/pull', async (req, res) => {
+        try {
+            const output = await execPromise('git pull origin master');
+            res.json({ success: true, output });
+        } catch (error: any) {
+            res.status(500).json({ error: error.message });
+        }
+    });
+
+    app.post('/api/admin/update/build', async (req, res) => {
+        try {
+            const output = await execPromise('npm run build');
+            res.json({ success: true, output });
+        } catch (error: any) {
+            res.status(500).json({ error: error.message });
+        }
+    });
+
+    app.post('/api/admin/update/full', async (req, res) => {
+        try {
+            let output = '';
+            output += '=== Git Pull ===\n';
+            output += await execPromise('git pull origin master');
+            output += '\n\n=== NPM Build ===\n';
+            output += await execPromise('npm run build');
+            res.json({ success: true, output, restart: 'Process will restart shortly. Refresh the page in a few seconds.' });
+
+            // Give time for response to be sent, then exit (PM2 will restart)
+            setTimeout(() => {
+                process.exit(0);
+            }, 1000);
+        } catch (error: any) {
+            res.status(500).json({ error: error.message });
+        }
+    });
+
     // Serve static files from web/dist in production
     const webDistPath = path.join(__dirname, '../web/dist');
     app.use(express.static(webDistPath));

@@ -244,6 +244,16 @@
                     <button onclick="coreStop()" class="danger">⏹️ Stop</button>
                     <button onclick="coreRestart()">🔄 Restart</button>
                 </div>
+
+                <div class="update-section">
+                    <h3>⚙️ Update & Maintenance</h3>
+                    <div class="update-actions">
+                        <button onclick="gitPull()">📥 Git Pull</button>
+                        <button onclick="npmBuild()">🔧 Rebuild</button>
+                        <button onclick="fullUpdate()" class="success">🚀 Full Update</button>
+                    </div>
+                    <pre id="updateOutput" class="update-output"></pre>
+                </div>
             </section>
         </main>
     </div>

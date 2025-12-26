@@ -315,6 +315,39 @@ button.success:hover {
     font-size: 1.1rem;
 }
 
+/* Update Section */
+.update-section {
+    background: var(--bg-card);
+    padding: 1.5rem;
+    border-radius: 12px;
+    margin-top: 2rem;
+    border-left: 4px solid #3498db;
+}
+
+.update-section h3 {
+    margin-bottom: 1rem;
+    color: #3498db;
+}
+
+.update-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    margin-bottom: 1rem;
+}
+
+.update-output {
+    background: var(--bg-dark);
+    padding: 1rem;
+    border-radius: 8px;
+    font-family: monospace;
+    font-size: 0.85rem;
+    max-height: 300px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    color: #2ecc71;
+}
+
 /* Current Track */
 .current-track {
     background: var(--bg-card);
