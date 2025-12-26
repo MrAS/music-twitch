@@ -17,11 +17,41 @@ const COOKIES_FILE = process.env.YOUTUBE_COOKIES || '';
 
 // Get cookies arguments if file exists
 function getCookiesArgs(): string[] {
-    if (COOKIES_FILE && fs.existsSync(COOKIES_FILE)) {
-        logger.info(`Using YouTube cookies from: ${COOKIES_FILE}`);
-        return ['--cookies', COOKIES_FILE];
+    if (COOKIES_FILE) {
+        if (fs.existsSync(COOKIES_FILE)) {
+            logger.info(`Using YouTube cookies from: ${COOKIES_FILE}`);
+            return ['--cookies', COOKIES_FILE];
+        } else {
+            logger.warn(`YouTube cookies file not found: ${COOKIES_FILE}`);
+            logger.warn('Proceeding without cookies. You may encounter rate limit errors.');
+        }
     }
     return [];
+}
+
+// Check if cookies are properly configured
+function checkCookiesConfig(): { configured: boolean; valid: boolean; message: string } {
+    if (!COOKIES_FILE) {
+        return {
+            configured: false,
+            valid: false,
+            message: 'YOUTUBE_COOKIES environment variable not set. Run ./setup-youtube-cookies.sh to configure.'
+        };
+    }
+    
+    if (!fs.existsSync(COOKIES_FILE)) {
+        return {
+            configured: true,
+            valid: false,
+            message: `Cookies file not found: ${COOKIES_FILE}. Please export cookies from your browser.`
+        };
+    }
+    
+    return {
+        configured: true,
+        valid: true,
+        message: 'YouTube cookies configured correctly.'
+    };
 }
 
 export interface YouTubeSearchResult {

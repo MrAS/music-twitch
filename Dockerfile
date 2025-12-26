@@ -26,6 +26,9 @@ COPY web/dist ./web/dist
 # Copy allowed.json template (will be overwritten by volume mount)
 COPY allowed.json ./allowed.json
 
+# Copy cookies file if it exists (optional, can also be mounted as volume)
+COPY cookies.tx[t] ./cookies.txt* 2>/dev/null || true
+
 # Create directories
 RUN mkdir -p cache
 

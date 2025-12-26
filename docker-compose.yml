@@ -8,9 +8,11 @@ services:
     volumes:
       - ./cache:/app/cache
       - ./allowed.json:/app/allowed.json:rw
+      - /cookies:/app/cookies.txt:ro
     env_file:
       - .env
     environment:
       - CACHE_DIR=/app/cache
       - ALLOWED_CATALOG_PATH=/app/allowed.json
       - API_PORT=3000
+      - YOUTUBE_COOKIES=/app/cookies.txt
