@@ -2,6 +2,7 @@ import { EnqueuedItem, AllowedItem } from '../types';
 import { DownloaderService } from './downloader';
 import { StreamerService } from './streamer';
 import { config } from '../config';
+import { insightsTracker } from './progress';
 import winston from 'winston';
 
 const logger = winston.createLogger({
@@ -48,6 +49,13 @@ export class QueueService {
         const enqueued: EnqueuedItem = { ...item, requestedBy: user };
         this.queue.push(enqueued);
         logger.info(`Enqueued: ${item.key} by ${user}`);
+
+        // Emit queue event
+        insightsTracker.queueEvent('enqueued', {
+            title: item.title,
+            user,
+            queueLength: this.queue.length
+        });
 
         // If not playing real content, start immediately
         if ((!this.current || this.isPlayingStandby) && !this.isProcessing) {
@@ -96,11 +104,13 @@ export class QueueService {
     }
 
     public async skip(): Promise<void> {
+        const skippedTitle = this.current?.title;
         if (this.timer) {
             clearTimeout(this.timer);
             this.timer = null;
         }
         await this.streamer.stop();
+        insightsTracker.queueEvent('skipped', { title: skippedTitle });
         this.current = null;
         await this.playNext();
     }
@@ -115,6 +125,7 @@ export class QueueService {
         this.queue = [];
         this.isPlayingStandby = false;
         this.disableAutoPlaylist();
+        insightsTracker.queueEvent('cleared', {});
     }
 
     public removeFromQueue(index: number): boolean {
@@ -146,6 +157,7 @@ export class QueueService {
         if (!this.autoPlaylist.enabled || !this.youtubeService) return;
 
         logger.info(`Auto-generating more songs for: "${this.autoPlaylist.description}"`);
+        insightsTracker.queueEvent('auto-generating', {});
 
         try {
             // Import AI playlist service dynamically
@@ -227,6 +239,7 @@ export class QueueService {
 
         this.current = nextItem;
         logger.info(`Preparing to play: ${nextItem.title}`);
+        insightsTracker.queueEvent('playing', { title: nextItem.title, user: nextItem.requestedBy });
 
         try {
             // 1. Ensure file exists

@@ -26,6 +26,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Connect to SSE for download progress
     connectProgressStream();
+    // Connect to SSE for all insights
+    connectInsightsStream();
 });
 
 // Download Progress SSE
@@ -47,6 +49,125 @@ function connectProgressStream() {
         // Reconnect after 3 seconds
         setTimeout(connectProgressStream, 3000);
     };
+}
+
+// Insights SSE (all real-time events)
+let insightsSource = null;
+
+function connectInsightsStream() {
+    if (insightsSource) {
+        insightsSource.close();
+    }
+
+    insightsSource = new EventSource('/api/admin/insights');
+
+    insightsSource.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        handleInsight(data);
+    };
+
+    insightsSource.onerror = () => {
+        setTimeout(connectInsightsStream, 3000);
+    };
+}
+
+function handleInsight(data) {
+    // Update stream status if it's a stream event
+    if (data.type === 'stream') {
+        updateStreamStatus(data);
+    }
+
+    // Add to activity feed
+    addInsightEntry(data);
+}
+
+function updateStreamStatus(data) {
+    const indicator = document.getElementById('streamIndicator');
+    const statusText = document.getElementById('streamStatusText');
+    const stats = document.getElementById('streamStats');
+
+    if (!indicator) return;
+
+    // Remove all status classes
+    indicator.className = 'status-indicator';
+
+    switch (data.status) {
+        case 'starting':
+            indicator.classList.add('starting');
+            statusText.textContent = 'Starting...';
+            stats.textContent = data.title || '';
+            break;
+        case 'streaming':
+            indicator.classList.add('streaming');
+            statusText.textContent = 'Streaming';
+            const statParts = [];
+            if (data.time) statParts.push(`Time: ${data.time}`);
+            if (data.bitrate) statParts.push(`${data.bitrate}`);
+            if (data.speed) statParts.push(`${data.speed}`);
+            stats.textContent = statParts.join(' | ');
+            break;
+        case 'stopped':
+            indicator.classList.add('stopped');
+            statusText.textContent = 'Idle';
+            stats.textContent = '';
+            break;
+        case 'error':
+            indicator.classList.add('error');
+            statusText.textContent = 'Error';
+            stats.textContent = data.title || '';
+            break;
+    }
+}
+
+function addInsightEntry(data) {
+    const feed = document.getElementById('insightsFeed');
+    if (!feed) return;
+
+    // Remove placeholder if present
+    const placeholder = feed.querySelector('.insight-placeholder');
+    if (placeholder) placeholder.remove();
+
+    // Limit to 50 entries
+    while (feed.children.length >= 50) {
+        feed.removeChild(feed.firstChild);
+    }
+
+    // Get icon based on type
+    const icons = {
+        download: '⬇️',
+        stream: '📡',
+        queue: '🎵',
+        system: 'ℹ️',
+        error: '❌'
+    };
+
+    // Create entry
+    const entry = document.createElement('div');
+    entry.className = `insight-entry ${data.type}`;
+
+    const time = new Date(data.timestamp).toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false
+    });
+
+    entry.innerHTML = `
+        <span class="time">${time}</span>
+        <span class="icon">${icons[data.type] || '•'}</span>
+        <span class="message">${escapeHtml(data.message)}</span>
+    `;
+
+    feed.appendChild(entry);
+
+    // Auto-scroll to bottom
+    feed.scrollTop = feed.scrollHeight;
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
 }
 
 function updateDownloadProgress(data) {

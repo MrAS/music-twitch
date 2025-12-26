@@ -91,6 +91,34 @@ export function createServer(): express.Application {
         });
     });
 
+    // SSE endpoint for all real-time insights (download, stream, queue, system events)
+    app.get('/api/admin/insights', (req, res) => {
+        res.setHeader('Content-Type', 'text/event-stream');
+        res.setHeader('Cache-Control', 'no-cache');
+        res.setHeader('Connection', 'keep-alive');
+        res.flushHeaders();
+
+        const { insightsTracker } = require('./services/progress');
+
+        // Send recent insights history on connect
+        const recentInsights = insightsTracker.getRecentInsights();
+        for (const insight of recentInsights.slice(-20)) {
+            res.write(`data: ${JSON.stringify(insight)}\n\n`);
+        }
+
+        // Listen for new insights
+        const onInsight = (data: any) => {
+            res.write(`data: ${JSON.stringify(data)}\n\n`);
+        };
+
+        insightsTracker.on('insight', onInsight);
+
+        // Clean up on disconnect
+        req.on('close', () => {
+            insightsTracker.off('insight', onInsight);
+        });
+    });
+
     // Protected routes
     app.use('/api/admin', authMiddleware);
 

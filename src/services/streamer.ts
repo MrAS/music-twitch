@@ -3,6 +3,7 @@ import path from 'path';
 import fs from 'fs-extra';
 import winston from 'winston';
 import { config } from '../config';
+import { insightsTracker } from './progress';
 
 const logger = winston.createLogger({
     level: 'info',
@@ -165,6 +166,10 @@ export class StreamerService {
 
         logger.info(`Starting stream: ${filePath} -> ${this.rtmpUrl} (quality: ${preset.name}, audio-only: ${isAudio})`);
 
+        // Emit stream starting event
+        const streamTitle = path.basename(filePath);
+        insightsTracker.startStream(streamTitle);
+
         let args: string[];
 
         if (isAudio) {
@@ -232,11 +237,14 @@ export class StreamerService {
 
             this.currentProcess.on('error', (err) => {
                 logger.error('FFmpeg error:', err);
+                insightsTracker.streamError(err.message);
                 reject(err);
             });
 
             this.currentProcess.stderr?.on('data', (data: Buffer) => {
                 const line = data.toString();
+                // Parse FFmpeg output for insights
+                insightsTracker.parseFFmpegOutput(line);
                 // Log progress occasionally
                 if (line.includes('frame=') || line.includes('time=')) {
                     logger.info(`FFmpeg: ${line.substring(0, 100)}`);
@@ -246,9 +254,11 @@ export class StreamerService {
             this.currentProcess.on('close', (code) => {
                 logger.info(`FFmpeg exited with code ${code}`);
                 this.currentProcess = null;
+                insightsTracker.stopStream();
                 if (code === 0 || code === 255) {
                     resolve();
                 } else {
+                    insightsTracker.streamError(`FFmpeg exited with code ${code}`);
                     reject(new Error(`FFmpeg exited with code ${code}`));
                 }
             });
