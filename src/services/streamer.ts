@@ -434,8 +434,10 @@ export class StreamerService {
                 const thumbPath = await this.getThumbnailForFile(filePath);
                 if (thumbPath && fs.existsSync(thumbPath)) {
                     logger.info(`Using thumbnail as background: ${thumbPath}`);
-                    // Loop the thumbnail image
-                    videoSource = ['-loop', '1', '-i', thumbPath];
+                    // Loop the thumbnail image with proper framerate
+                    videoSource = ['-loop', '1', '-framerate', '30', '-i', thumbPath];
+                } else {
+                    logger.warn('Thumbnail not found, using black background');
                 }
             }
 
