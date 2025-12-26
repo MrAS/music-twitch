@@ -916,11 +916,179 @@ async function removeFromQueue(index) {
     }
 }
 
+// ===== QUEUE PAGE TABS =====
+function showAddTab(tab) {
+    // Hide all tabs
+    document.getElementById('addTabSearch').style.display = 'none';
+    document.getElementById('addTabCache').style.display = 'none';
+    document.getElementById('addTabPlaylists').style.display = 'none';
+
+    // Remove active from all buttons
+    document.getElementById('tabSearch').classList.remove('active');
+    document.getElementById('tabCache').classList.remove('active');
+    document.getElementById('tabPlaylists').classList.remove('active');
+
+    // Show selected tab
+    document.getElementById('addTab' + tab.charAt(0).toUpperCase() + tab.slice(1)).style.display = 'block';
+    document.getElementById('tab' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.add('active');
+
+    // Load data if needed
+    if (tab === 'cache') loadCacheForQueue();
+    if (tab === 'playlists') loadSavedPlaylists();
+}
+
+// Search for Queue
+async function searchForQueue() {
+    const input = document.getElementById('queueSearchInput');
+    const resultsDiv = document.getElementById('queueSearchResults');
+    const query = input.value.trim();
+
+    if (!query) return;
+    resultsDiv.innerHTML = '<div class="search-placeholder">Searching...</div>';
+
+    try {
+        const data = await api('POST', '/youtube/search', { query, limit: 8 });
+        const results = data.results || [];
+
+        if (results.length === 0) {
+            resultsDiv.innerHTML = '<div class="search-placeholder">No results</div>';
+            return;
+        }
+
+        resultsDiv.innerHTML = results.map((r, i) => `
+            <div class="cache-item">
+                <span class="cache-item-name">${r.title}</span>
+                ${r.cached ? '<span style="color:#4ecdc4;font-size:0.8rem">✓</span>' : ''}
+                <button onclick="addSearchResultToQueue(${i})">➕ Add</button>
+            </div>
+        `).join('');
+
+        window.queueSearchResults = results;
+    } catch (err) {
+        resultsDiv.innerHTML = '<div class="search-placeholder">Search failed</div>';
+    }
+}
+
+async function addSearchResultToQueue(index) {
+    const result = window.queueSearchResults[index];
+    if (!result) return;
+
+    try {
+        await api('POST', '/youtube/play', { videoId: result.id, url: result.url, title: result.title });
+        loadQueue();
+    } catch (err) {
+        alert('Failed to add');
+    }
+}
+
+// Cache for Queue
+async function loadCacheForQueue() {
+    const listEl = document.getElementById('cacheAddList');
+    try {
+        const data = await api('GET', '/cache');
+        const files = data.files || [];
+
+        if (files.length === 0) {
+            listEl.innerHTML = '<div class="queue-empty">No cached songs</div>';
+            return;
+        }
+
+        listEl.innerHTML = files.slice(0, 50).map((f, i) => `
+            <div class="cache-item">
+                <span class="cache-item-name">${f.name}</span>
+                <button onclick="addCacheToQueue('${f.path.replace(/'/g, "\\'")}', '${f.name.replace(/'/g, "\\'")}')">➕ Add</button>
+            </div>
+        `).join('');
+    } catch (err) {
+        listEl.innerHTML = '<div class="queue-empty">Failed to load cache</div>';
+    }
+}
+
+async function addCacheToQueue(path, name) {
+    try {
+        await api('POST', '/queue/add', { path, title: name });
+        loadQueue();
+    } catch (err) {
+        alert('Failed to add');
+    }
+}
+
+// Saved Playlists (stored in localStorage)
+function loadSavedPlaylists() {
+    const listEl = document.getElementById('savedPlaylistsList');
+    const playlists = JSON.parse(localStorage.getItem('savedPlaylists') || '[]');
+
+    if (playlists.length === 0) {
+        listEl.innerHTML = '<div class="queue-empty">No saved playlists</div>';
+        return;
+    }
+
+    listEl.innerHTML = playlists.map((p, i) => `
+        <div class="playlist-item">
+            <span class="playlist-item-name">${p.name} (${p.songs.length} songs)</span>
+            <button onclick="loadPlaylist(${i})">▶ Load</button>
+            <button onclick="deletePlaylist(${i})" style="background:#ff6b6b">✕</button>
+        </div>
+    `).join('');
+}
+
+async function saveCurrentAsPlaylist() {
+    const nameInput = document.getElementById('newPlaylistName');
+    const name = nameInput.value.trim();
+    if (!name) {
+        alert('Enter a playlist name');
+        return;
+    }
+
+    try {
+        const data = await api('GET', '/queue');
+        const queue = data.queue || [];
+
+        if (queue.length === 0) {
+            alert('Queue is empty');
+            return;
+        }
+
+        const playlists = JSON.parse(localStorage.getItem('savedPlaylists') || '[]');
+        playlists.push({ name, songs: queue });
+        localStorage.setItem('savedPlaylists', JSON.stringify(playlists));
+
+        nameInput.value = '';
+        loadSavedPlaylists();
+        alert('Playlist saved!');
+    } catch (err) {
+        alert('Failed to save playlist');
+    }
+}
+
+async function loadPlaylist(index) {
+    const playlists = JSON.parse(localStorage.getItem('savedPlaylists') || '[]');
+    const playlist = playlists[index];
+    if (!playlist) return;
+
+    for (const song of playlist.songs) {
+        try {
+            await api('POST', '/queue/add', { path: song.source?.path, title: song.title });
+        } catch (e) { }
+    }
+    loadQueue();
+}
+
+function deletePlaylist(index) {
+    if (!confirm('Delete this playlist?')) return;
+    const playlists = JSON.parse(localStorage.getItem('savedPlaylists') || '[]');
+    playlists.splice(index, 1);
+    localStorage.setItem('savedPlaylists', JSON.stringify(playlists));
+    loadSavedPlaylists();
+}
+
 // Auto-refresh status and queue every 5 seconds
 setInterval(() => {
     if (currentPage === 'status') {
         loadStatus();
         loadQueueList();
     }
+    if (currentPage === 'queue') {
+        loadQueue();
+    }
 }, 5000);
-

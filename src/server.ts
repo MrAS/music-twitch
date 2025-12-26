@@ -427,6 +427,28 @@ export function createServer(): express.Application {
         }
     });
 
+    app.post('/api/admin/queue/add', (req, res) => {
+        const { path, title } = req.body;
+        const { queue, twitchBot } = getServices();
+
+        if (!path || !title) {
+            return res.status(400).json({ error: 'path and title required' });
+        }
+
+        queue.enqueue({
+            key: `cache_${Date.now()}`,
+            title: title,
+            source: { type: 'local_file', path: path }
+        }, 'Admin (Web)');
+
+        // Notify Twitch chat
+        if (twitchBot && twitchBot.sendMessage) {
+            twitchBot.sendMessage(`🎵 Queued: ${title} (via Web)`);
+        }
+
+        res.json({ success: true, title });
+    });
+
     app.post('/api/admin/queue/remove', (req, res) => {
         const { index } = req.body;
         const { queue } = getServices();

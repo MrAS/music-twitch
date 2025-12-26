@@ -120,23 +120,56 @@
             <!-- Queue Page -->
             <section id="queuePage" class="page" style="display: none;">
                 <h2>Queue Management</h2>
-                <div class="actions">
-                    <button onclick="skipTrack()">⏭️ Skip</button>
-                    <button onclick="clearQueue()" class="danger">🗑️ Clear Queue</button>
+
+                <!-- Quick Add Section -->
+                <div class="queue-add-section">
+                    <h3>➕ Quick Add</h3>
+                    <div class="add-tabs">
+                        <button onclick="showAddTab('search')" class="tab-btn active" id="tabSearch">🔍 Search</button>
+                        <button onclick="showAddTab('cache')" class="tab-btn" id="tabCache">💾 Cache</button>
+                        <button onclick="showAddTab('playlists')" class="tab-btn" id="tabPlaylists">📋
+                            Playlists</button>
+                    </div>
+
+                    <!-- Search Tab -->
+                    <div id="addTabSearch" class="add-tab-content">
+                        <div class="search-bar">
+                            <input type="text" id="queueSearchInput" placeholder="Search YouTube..."
+                                onkeypress="if(event.key==='Enter')searchForQueue()" />
+                            <button onclick="searchForQueue()" class="btn-search">Search</button>
+                        </div>
+                        <div class="add-results" id="queueSearchResults"></div>
+                    </div>
+
+                    <!-- Cache Tab -->
+                    <div id="addTabCache" class="add-tab-content" style="display:none;">
+                        <div class="cache-list" id="cacheAddList">Loading cache...</div>
+                    </div>
+
+                    <!-- Playlists Tab -->
+                    <div id="addTabPlaylists" class="add-tab-content" style="display:none;">
+                        <div class="playlist-controls">
+                            <input type="text" id="newPlaylistName" placeholder="Playlist name..." />
+                            <button onclick="saveCurrentAsPlaylist()">💾 Save Current Queue</button>
+                        </div>
+                        <div class="saved-playlists" id="savedPlaylistsList">No saved playlists</div>
+                    </div>
                 </div>
-                <div class="current-track" id="currentTrackInfo"></div>
-                <table id="queueTable">
-                    <thead>
-                        <tr>
-                            <th>#</th>
-                            <th>Title</th>
-                            <th>Key</th>
-                            <th>Requested By</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="queueBody"></tbody>
-                </table>
+
+                <!-- Current Queue -->
+                <div class="queue-current">
+                    <div class="queue-header">
+                        <h3>🎵 Current Queue</h3>
+                        <div class="queue-actions">
+                            <button onclick="skipTrack()">⏭️ Skip</button>
+                            <button onclick="clearQueue()" class="danger">🗑️ Clear</button>
+                        </div>
+                    </div>
+                    <div class="current-track" id="currentTrackInfo"></div>
+                    <div class="queue-list-full" id="queueListFull">
+                        <div class="queue-empty">Queue is empty</div>
+                    </div>
+                </div>
             </section>
 
             <!-- Catalog Page -->

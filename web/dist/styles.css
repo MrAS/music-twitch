@@ -1169,6 +1169,107 @@ td button {
     border: 1px solid #e74c3c;
 }
 
+/* ===== QUEUE PAGE TABS ===== */
+.queue-add-section {
+    background: var(--bg-card);
+    border-radius: 12px;
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.add-tabs {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.tab-btn {
+    padding: 0.6rem 1rem;
+    background: rgba(255, 255, 255, 0.05);
+    border: none;
+    border-radius: 8px;
+    color: var(--text);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.tab-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.tab-btn.active {
+    background: var(--accent);
+    color: white;
+}
+
+.add-results,
+.cache-list {
+    max-height: 250px;
+    overflow-y: auto;
+}
+
+.cache-item,
+.playlist-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.6rem 0.75rem;
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 6px;
+    margin-bottom: 0.4rem;
+}
+
+.cache-item:hover,
+.playlist-item:hover {
+    background: rgba(233, 69, 96, 0.1);
+}
+
+.cache-item-name,
+.playlist-item-name {
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.cache-item button,
+.playlist-item button {
+    padding: 0.3rem 0.6rem;
+    background: #4ecdc4;
+    color: #1a1a2e;
+    border: none;
+    border-radius: 5px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    margin-left: 0.5rem;
+}
+
+.playlist-controls {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.playlist-controls input {
+    flex: 1;
+    padding: 0.6rem;
+    background: var(--bg-dark);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+}
+
+.queue-current {
+    background: var(--bg-card);
+    border-radius: 12px;
+    padding: 1rem;
+}
+
+.queue-list-full {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
 /* ===== MOBILE RESPONSIVE ===== */
 @media (max-width: 768px) {
     .dashboard {
