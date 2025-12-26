@@ -403,18 +403,26 @@ export class StreamerService {
                 reject(err);
             });
 
+            // Buffer to capture FFmpeg errors
+            let stderrBuffer: string[] = [];
+
             this.currentProcess.stderr?.on('data', (data: Buffer) => {
                 const line = data.toString();
+                // Store last 10 lines of stderr for error diagnosis
+                stderrBuffer.push(line);
+                if (stderrBuffer.length > 10) stderrBuffer.shift();
+
                 // Parse FFmpeg output for insights
                 insightsTracker.parseFFmpegOutput(line);
-                // Log progress occasionally
-                if (line.includes('frame=') || line.includes('time=')) {
-                    logger.info(`FFmpeg: ${line.substring(0, 100)}`);
-                }
+                // Log ALL output for debugging
+                logger.info(`FFmpeg: ${line.substring(0, 200)}`);
             });
 
             this.currentProcess.on('close', (code) => {
                 logger.info(`FFmpeg exited with code ${code}`);
+                if (code !== 0 && code !== 255) {
+                    logger.error(`FFmpeg stderr (last lines): ${stderrBuffer.join('')}`);
+                }
                 this.currentProcess = null;
                 insightsTracker.stopStream();
                 if (code === 0 || code === 255) {
