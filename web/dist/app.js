@@ -806,7 +806,100 @@ async function fullUpdate() {
     }
 }
 
-// Auto-refresh status every 5 seconds
+// ===== NEW: YouTube Search =====
+let searchResults = [];
+
+async function searchYouTube() {
+    const input = document.getElementById('youtubeSearchInput');
+    const resultsDiv = document.getElementById('searchResults');
+    const query = input.value.trim();
+
+    if (!query) {
+        resultsDiv.innerHTML = '<div class="search-placeholder">Enter a search term</div>';
+        return;
+    }
+
+    resultsDiv.innerHTML = '<div class="search-placeholder">Searching...</div>';
+
+    try {
+        const data = await api('POST', '/youtube/search', { query, limit: 10 });
+        searchResults = data.results || [];
+
+        if (searchResults.length === 0) {
+            resultsDiv.innerHTML = '<div class="search-placeholder">No results found</div>';
+            return;
+        }
+
+        resultsDiv.innerHTML = searchResults.map((r, i) => `
+            <div class="search-item" onclick="playSearchResult(${i})">
+                <span class="search-item-title">${r.title}</span>
+                ${r.cached ? '<span class="search-item-cached">✓ cached</span>' : ''}
+                <button onclick="event.stopPropagation(); playSearchResult(${i})">▶ Play</button>
+            </div>
+        `).join('');
+    } catch (err) {
+        resultsDiv.innerHTML = '<div class="search-placeholder">Search failed</div>';
+    }
+}
+
+async function playSearchResult(index) {
+    const result = searchResults[index];
+    if (!result) return;
+
+    try {
+        const data = await api('POST', '/youtube/play', { videoId: result.id, url: result.url, title: result.title });
+        if (data.success) {
+            loadQueueList();
+            loadStatus();
+        }
+    } catch (err) {
+        alert('Failed to play: ' + (err.message || 'Error'));
+    }
+}
+
+// ===== NEW: Queue List =====
+async function loadQueueList() {
+    const listEl = document.getElementById('queueList');
+    const countEl = document.getElementById('queueCount');
+    if (!listEl) return;
+
+    try {
+        const data = await api('GET', '/queue');
+        const queue = data.queue || [];
+
+        countEl.textContent = `${queue.length} song${queue.length !== 1 ? 's' : ''}`;
+
+        if (queue.length === 0) {
+            listEl.innerHTML = '<div class="queue-empty">Queue is empty</div>';
+            return;
+        }
+
+        listEl.innerHTML = queue.map((item, i) => `
+            <div class="queue-item">
+                <span class="queue-item-num">${i + 1}</span>
+                <span class="queue-item-title">${item.title}</span>
+                <button onclick="removeFromQueue(${i})" title="Remove">✕</button>
+            </div>
+        `).join('');
+    } catch (err) {
+        listEl.innerHTML = '<div class="queue-empty">Failed to load queue</div>';
+    }
+}
+
+async function removeFromQueue(index) {
+    try {
+        await api('POST', '/queue/remove', { index });
+        loadQueueList();
+    } catch (err) {
+        alert('Failed to remove item');
+    }
+}
+
+// Auto-refresh status and queue every 5 seconds
 setInterval(() => {
-    if (currentPage === 'status') loadStatus();
+    if (currentPage === 'status') {
+        loadStatus();
+        loadQueueList();
+    }
 }, 5000);
+

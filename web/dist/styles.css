@@ -177,6 +177,328 @@ body {
     margin-bottom: 2rem;
 }
 
+/* ===== NEW PLAYER UI ===== */
+
+/* Player Section */
+.player-section {
+    margin-bottom: 2rem;
+}
+
+.now-playing-card {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    border-radius: 20px;
+    padding: 2rem;
+    border: 1px solid rgba(233, 69, 96, 0.3);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+}
+
+.np-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.np-badge {
+    background: #e94560;
+    color: white;
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: bold;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.6;
+    }
+}
+
+.np-badge.offline {
+    background: #666;
+    animation: none;
+}
+
+.np-time {
+    font-family: monospace;
+    font-size: 1.2rem;
+    color: #4ecdc4;
+}
+
+.np-title {
+    font-size: 1.8rem;
+    margin-bottom: 0.5rem;
+    color: white;
+}
+
+.np-stats {
+    color: #888;
+    margin-bottom: 1.5rem;
+}
+
+.np-controls {
+    display: flex;
+    gap: 0.75rem;
+}
+
+.btn-skip,
+.btn-autoplay {
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 25px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.btn-skip {
+    background: #ff6b6b;
+    color: white;
+}
+
+.btn-skip:hover {
+    background: #ff5252;
+    transform: scale(1.05);
+}
+
+.btn-autoplay {
+    background: #1a1a2e;
+    color: #4ecdc4;
+    border: 2px solid #4ecdc4;
+}
+
+.btn-autoplay.active {
+    background: #4ecdc4;
+    color: #1a1a2e;
+}
+
+/* Search Section */
+.search-section {
+    background: var(--bg-card);
+    border-radius: 16px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.search-section h3 {
+    margin-bottom: 1rem;
+}
+
+.search-bar {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.search-bar input {
+    flex: 1;
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--border);
+    border-radius: 25px;
+    background: var(--bg-dark);
+    color: var(--text);
+    font-size: 1rem;
+}
+
+.search-bar input:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+.btn-search {
+    padding: 0.75rem 1.5rem;
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 25px;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+.btn-search:hover {
+    background: var(--accent-hover);
+}
+
+.search-results {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.search-placeholder {
+    color: #666;
+    text-align: center;
+    padding: 2rem;
+}
+
+.search-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem;
+    border-radius: 8px;
+    margin-bottom: 0.5rem;
+    background: rgba(255, 255, 255, 0.02);
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.search-item:hover {
+    background: rgba(233, 69, 96, 0.1);
+}
+
+.search-item-title {
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.search-item-cached {
+    color: #4ecdc4;
+    font-size: 0.8rem;
+    margin-left: 0.5rem;
+}
+
+.search-item button {
+    padding: 0.4rem 0.8rem;
+    background: #4ecdc4;
+    color: #1a1a2e;
+    border: none;
+    border-radius: 15px;
+    font-size: 0.85rem;
+    cursor: pointer;
+}
+
+/* Queue Section */
+.queue-section {
+    background: var(--bg-card);
+    border-radius: 16px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.queue-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.queue-count {
+    color: #888;
+    font-size: 0.9rem;
+}
+
+.queue-list {
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.queue-empty {
+    color: #666;
+    text-align: center;
+    padding: 1rem;
+}
+
+.queue-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.6rem 0.75rem;
+    border-left: 3px solid var(--accent);
+    background: rgba(255, 255, 255, 0.02);
+    margin-bottom: 0.4rem;
+    border-radius: 0 8px 8px 0;
+}
+
+.queue-item-num {
+    color: #888;
+    font-size: 0.85rem;
+    margin-right: 0.75rem;
+}
+
+.queue-item-title {
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.queue-item button {
+    background: transparent;
+    border: none;
+    color: #ff6b6b;
+    cursor: pointer;
+    font-size: 1rem;
+    opacity: 0.5;
+    transition: opacity 0.2s;
+}
+
+.queue-item:hover button {
+    opacity: 1;
+}
+
+/* Quick Actions */
+.quick-actions {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.action-card {
+    background: var(--bg-card);
+    border-radius: 12px;
+    padding: 1rem;
+    text-align: center;
+}
+
+.action-card h4 {
+    font-size: 0.85rem;
+    color: #888;
+    margin-bottom: 0.5rem;
+}
+
+.action-card p {
+    font-size: 1rem;
+    margin-bottom: 0.5rem;
+}
+
+.action-card select,
+.action-card button {
+    width: 100%;
+    padding: 0.5rem;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--bg-dark);
+    color: var(--text);
+    cursor: pointer;
+}
+
+/* Activity Section */
+.activity-section {
+    background: var(--bg-card);
+    border-radius: 12px;
+    margin-bottom: 1rem;
+}
+
+.activity-section summary {
+    padding: 1rem 1.5rem;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.activity-section[open] .insights-feed {
+    padding: 0 1.5rem 1.5rem;
+}
+
 /* Stream Progress Display */
 .stream-progress {
     font-size: 0.75rem;

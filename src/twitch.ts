@@ -64,6 +64,12 @@ export class TwitchBot {
         return this.commandLogs.slice(-100);
     }
 
+    public sendMessage(message: string): void {
+        if (this.connected && this.client) {
+            this.client.say(`#${config.twitch.channel}`, message);
+        }
+    }
+
     private logCommand(user: string, command: string, args: string, action: string) {
         this.commandLogs.push({
             timestamp: new Date(),

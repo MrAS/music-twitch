@@ -38,114 +38,78 @@
         <main class="content">
             <!-- Status Page -->
             <section id="statusPage" class="page">
-                <h2>Dashboard Status</h2>
-                <div class="status-grid">
-                    <div class="status-card">
-                        <h3>Bot Status</h3>
+                <!-- Main Player Section -->
+                <div class="player-section">
+                    <div class="now-playing-card">
+                        <div class="np-header">
+                            <span class="np-badge" id="streamIndicator">● LIVE</span>
+                            <span class="np-time" id="streamTime">00:00:00</span>
+                        </div>
+                        <h2 class="np-title" id="currentPlaying">Nothing playing</h2>
+                        <div class="np-stats">
+                            <span id="streamBitrate">--</span> • <span id="streamSpeed">--</span>
+                        </div>
+                        <div class="np-controls">
+                            <button onclick="skipTrack()" class="btn-skip">⏭️ Skip</button>
+                            <button onclick="toggleSuggestions()" id="suggestionsBtn" class="btn-autoplay">🔄
+                                Auto</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- YouTube Search Section -->
+                <div class="search-section">
+                    <h3>🔍 Search YouTube</h3>
+                    <div class="search-bar">
+                        <input type="text" id="youtubeSearchInput" placeholder="Search for songs..."
+                            onkeypress="if(event.key==='Enter')searchYouTube()" />
+                        <button onclick="searchYouTube()" class="btn-search">Search</button>
+                    </div>
+                    <div class="search-results" id="searchResults">
+                        <div class="search-placeholder">Enter a search term above</div>
+                    </div>
+                </div>
+
+                <!-- Queue Section -->
+                <div class="queue-section">
+                    <div class="queue-header">
+                        <h3>📋 Queue</h3>
+                        <span class="queue-count" id="queueCount">0 songs</span>
+                    </div>
+                    <div class="queue-list" id="queueList">
+                        <div class="queue-empty">Queue is empty</div>
+                    </div>
+                </div>
+
+                <!-- Quick Actions Row -->
+                <div class="quick-actions">
+                    <div class="action-card">
+                        <h4>🔄 Auto-Play</h4>
+                        <p id="suggestionsStatus">Disabled</p>
+                        <button onclick="toggleSuggestions()" id="suggestionsBtn2">Enable</button>
+                    </div>
+                    <div class="action-card">
+                        <h4>🎬 Quality</h4>
+                        <select id="qualitySelect" onchange="changeQuality(this.value)">
+                            <option value="480p">480p</option>
+                            <option value="720p">720p</option>
+                            <option value="1080p">1080p</option>
+                            <option value="source" selected>Source</option>
+                        </select>
+                    </div>
+                    <div class="action-card">
+                        <h4>📡 Status</h4>
                         <p id="botStatus">--</p>
                     </div>
-                    <div class="status-card">
-                        <h3>Queue Length</h3>
-                        <p id="queueLength">--</p>
-                    </div>
-                    <div class="status-card">
-                        <h3>Core Status</h3>
-                        <p id="coreStatus">--</p>
-                    </div>
-                    <div class="status-card current-playing">
-                        <h3>Now Playing</h3>
-                        <p id="currentPlaying">--</p>
-                        <div class="stream-progress" id="streamProgress">
-                            <span id="streamTime">00:00:00</span> •
-                            <span id="streamBitrate">0 kbps</span> •
-                            <span id="streamSpeed">0x</span>
-                        </div>
-                    </div>
                 </div>
 
-                <!-- Playback Controls -->
-                <div class="playback-controls">
-                    <button onclick="skipTrack()" class="danger">⏭️ Skip</button>
-                    <button onclick="toggleSuggestions()" id="suggestionsBtn">🔄 Enable Suggestions</button>
-                    <span id="suggestionsStatus" class="suggestions-status"></span>
-                </div>
-
-                <!-- Play URL Section -->
-                <div class="play-url-section">
-                    <h3>▶️ Play YouTube</h3>
-                    <div class="play-url-controls">
-                        <input type="text" id="playUrlInput" placeholder="YouTube URL or search term..." />
-                        <button onclick="playUrl()" class="success">▶ Play</button>
-                    </div>
-                    <span id="playUrlStatus" class="play-status"></span>
-                </div>
-
-                <!-- Download Progress Section -->
-                <div class="download-section" id="downloadSection" style="display: none;">
-                    <h3>⬇️ Download Progress</h3>
-                    <div class="download-item">
-                        <span id="downloadTitle">--</span>
-                        <div class="progress-bar">
-                            <div class="progress-fill" id="downloadProgress" style="width: 0%"></div>
-                        </div>
-                        <span id="downloadPercent">0%</span>
-                    </div>
-                </div>
-
-                <!-- Live Activity Insights -->
-                <div class="insights-section">
-                    <h3>📡 Live Activity</h3>
-                    <div class="stream-status" id="streamStatus">
-                        <span class="status-indicator" id="streamIndicator">●</span>
-                        <span id="streamStatusText">Idle</span>
-                        <span id="streamStats" class="stream-stats"></span>
-                    </div>
+                <!-- Activity Log (collapsed) -->
+                <details class="activity-section">
+                    <summary>📜 Activity Log</summary>
                     <div class="insights-feed" id="insightsFeed">
                         <div class="insight-placeholder">Waiting for activity...</div>
                     </div>
-                </div>
-
-                <!-- Quality Settings Section -->
-                <div class="quality-section">
-                    <h3>🎬 Stream Quality</h3>
-                    <div class="quality-controls">
-                        <select id="qualitySelect" onchange="changeQuality(this.value)">
-                            <option value="480p">480p (SD)</option>
-                            <option value="720p" selected>720p (HD)</option>
-                            <option value="1080p">1080p (Full HD)</option>
-                            <option value="4k">4K (Ultra HD)</option>
-                            <option value="8k">8K</option>
-                            <option value="source">Source (No Re-encode)</option>
-                        </select>
-                        <span id="qualityInfo" class="quality-info"></span>
-                    </div>
-                </div>
-
-                <!-- Cover Image Section -->
-                <div class="cover-section">
-                    <h3>🖼️ Cover Image (Audio Streams)</h3>
-                    <p class="section-desc">Set a background image for audio-only streams. Leave empty for black
-                        background.</p>
-                    <div class="cover-controls">
-                        <input type="text" id="coverImagePath"
-                            placeholder="Path to image (e.g., /root/music-twitch/cover.jpg)" />
-                        <button onclick="setCoverImage()">Set</button>
-                        <button onclick="clearCoverImage()" class="danger">Clear</button>
-                    </div>
-                    <span id="coverInfo" class="cover-info"></span>
-                </div>
-
-                <!-- YouTube Related Videos (Non-Stop Mode) -->
-                <div class="related-section">
-                    <h3>🔄 Auto-Play Related Videos</h3>
-                    <p class="section-desc">When enabled, the bot automatically queues the next related video from
-                        YouTube after each song finishes.</p>
-                    <div class="related-controls">
-                        <button onclick="toggleSuggestions()" id="suggestionsBtn2" class="success">▶️ Enable
-                            Auto-Play</button>
-                        <span id="suggestionsStatus2" class="suggestions-status"></span>
-                    </div>
-                </div>
+                </details>
             </section>
 
             <!-- Queue Page -->

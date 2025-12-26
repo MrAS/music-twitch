@@ -360,6 +360,67 @@ export function createServer(): express.Application {
         }
     });
 
+    // ===== YouTube Search & Play Endpoints =====
+    app.post('/api/admin/youtube/search', async (req, res) => {
+        const { query, limit = 10 } = req.body;
+        const { youtube } = getServices();
+
+        if (!query) {
+            return res.status(400).json({ error: 'Query required' });
+        }
+
+        try {
+            const results = await youtube.searchMultiple(query, limit);
+            // Add cached status to each result
+            const resultsWithStatus = results.map((r: any) => ({
+                ...r,
+                cached: youtube.isCached(r.id)
+            }));
+            res.json({ results: resultsWithStatus });
+        } catch (error: any) {
+            res.status(500).json({ error: error.message || 'Search failed' });
+        }
+    });
+
+    app.post('/api/admin/youtube/play', async (req, res) => {
+        const { videoId, url, title } = req.body;
+        const { queue, youtube, twitchBot } = getServices();
+
+        if (!videoId || !url) {
+            return res.status(400).json({ error: 'videoId and url required' });
+        }
+
+        try {
+            const filePath = await youtube.ensureDownloaded(videoId, url);
+            queue.enqueue({
+                key: `yt_${videoId}`,
+                title: title || videoId,
+                source: { type: 'local_file', path: filePath }
+            }, 'Admin (Web)');
+
+            // Notify Twitch chat
+            if (twitchBot && twitchBot.sendMessage) {
+                twitchBot.sendMessage(`🎵 Now queued: ${title || videoId} (via Web)`);
+            }
+
+            res.json({ success: true, title });
+        } catch (error: any) {
+            res.status(500).json({ error: error.message || 'Failed to play' });
+        }
+    });
+
+    app.post('/api/admin/queue/remove', (req, res) => {
+        const { index } = req.body;
+        const { queue } = getServices();
+
+        if (typeof index !== 'number') {
+            return res.status(400).json({ error: 'Index required' });
+        }
+
+        const success = queue.removeFromQueue(index);
+        res.json({ success });
+    });
+
     // AI Playlist endpoints
     app.post('/api/admin/playlist/generate', async (req, res) => {
         const { description, count = 5, mode = 'shuffle' } = req.body;
