@@ -135,37 +135,17 @@
                     <span id="coverInfo" class="cover-info"></span>
                 </div>
 
-                <!-- AI Playlist Section - DISABLED (generates improper playlists)
-                <div class="ai-playlist-section">
-                    <h3>🤖 AI Playlist Generator</h3>
-                    <div class="playlist-form">
-                        <input type="text" id="playlistDescription"
-                            placeholder="Describe your mood (e.g., relaxing arabic music, 90s rock hits)" />
-                        <select id="playlistCount">
-                            <option value="3">3 songs</option>
-                            <option value="5" selected>5 songs</option>
-                            <option value="10">10 songs</option>
-                        </select>
-                        <button onclick="generatePlaylist()">🎵 Generate</button>
-                    </div>
-                    <div id="playlistResult" style="display: none;">
-                        <h4 id="playlistName"></h4>
-                        <ul id="playlistSongs"></ul>
-                        <button onclick="queuePlaylist()" class="success">▶️ Queue All</button>
-                        <label class="autoplay-toggle">
-                            <input type="checkbox" id="autoPlaylistToggle" onchange="toggleAutoPlaylist()">
-                            <span>🔁 Non-Stop Mode (auto-generate when queue empty)</span>
-                        </label>
-                    </div>
-                    <div id="autoPlaylistStatus" style="display: none; margin-top: 1rem;">
-                        <span>🔄 Non-Stop Active: <strong id="autoPlaylistDesc"></strong></span>
-                        <button onclick="disableAutoPlaylist()" class="danger" style="margin-left: 1rem;">Stop</button>
-                    </div>
-                    <div id="playlistLoading" style="display: none;">
-                        <span>🔄 Generating playlist...</span>
+                <!-- YouTube Related Videos (Non-Stop Mode) -->
+                <div class="related-section">
+                    <h3>🔄 Auto-Play Related Videos</h3>
+                    <p class="section-desc">When enabled, the bot automatically queues the next related video from
+                        YouTube after each song finishes.</p>
+                    <div class="related-controls">
+                        <button onclick="toggleSuggestions()" id="suggestionsBtn2" class="success">▶️ Enable
+                            Auto-Play</button>
+                        <span id="suggestionsStatus2" class="suggestions-status"></span>
                     </div>
                 </div>
-                -->
             </section>
 
             <!-- Queue Page -->
