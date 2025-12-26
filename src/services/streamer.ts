@@ -297,14 +297,19 @@ export class StreamerService {
         let args: string[];
 
         if (isAudio) {
-            // For audio-only files, stream audio directly (no video)
-            // Matches working command: ffmpeg -re -i audio.m4a -c:a aac -b:a 128k -ar 44100 -f flv rtmp://...
+            // For audio-only files, use concat demuxer (matches working manual command)
+            // ffmpeg -re -f concat -safe 0 -i playlist.txt -c:a aac -b:a 128k -ar 44100 -f flv rtmp://...
             logger.info(`Streaming audio-only: ${filePath}`);
+
+            // Create a temporary playlist with just this file
+            const tempPlaylist = path.join(config.system.cacheDir, 'temp_playlist.txt');
+            fs.writeFileSync(tempPlaylist, `file '${filePath}'`);
 
             args = [
                 '-re', // Read at native frame rate
-                ...(loop ? ['-stream_loop', '-1'] : []),
-                '-i', filePath, // Audio input
+                '-f', 'concat',
+                '-safe', '0',
+                '-i', tempPlaylist,
                 '-c:a', 'aac',
                 '-b:a', '128k',
                 '-ar', '44100',

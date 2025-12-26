@@ -105,17 +105,97 @@ function updateStreamStatus(data) {
             if (data.bitrate) statParts.push(`${data.bitrate}`);
             if (data.speed) statParts.push(`${data.speed}`);
             stats.textContent = statParts.join(' | ');
+
+            // Update live progress in Now Playing card
+            if (data.time) {
+                const streamTimeEl = document.getElementById('streamTime');
+                const streamBitrateEl = document.getElementById('streamBitrate');
+                const streamSpeedEl = document.getElementById('streamSpeed');
+                if (streamTimeEl) streamTimeEl.textContent = data.time;
+                if (streamBitrateEl) streamBitrateEl.textContent = data.bitrate || '0 kbps';
+                if (streamSpeedEl) streamSpeedEl.textContent = data.speed || '0x';
+            }
             break;
         case 'stopped':
             indicator.classList.add('stopped');
             statusText.textContent = 'Idle';
             stats.textContent = '';
+            // Reset live progress
+            const st = document.getElementById('streamTime');
+            const sb = document.getElementById('streamBitrate');
+            const ss = document.getElementById('streamSpeed');
+            if (st) st.textContent = '00:00:00';
+            if (sb) sb.textContent = '0 kbps';
+            if (ss) ss.textContent = '0x';
             break;
         case 'error':
             indicator.classList.add('error');
             statusText.textContent = 'Error';
             stats.textContent = data.title || '';
             break;
+    }
+}
+
+// Skip current track
+async function skipTrack() {
+    try {
+        await api('POST', '/queue/skip');
+        loadStatus();
+    } catch (err) {
+        alert('Failed to skip: ' + (err.message || 'Unknown error'));
+    }
+}
+
+// Toggle YouTube suggestions mode
+let suggestionsEnabled = false;
+
+async function toggleSuggestions() {
+    const btn = document.getElementById('suggestionsBtn');
+    const status = document.getElementById('suggestionsStatus');
+
+    try {
+        if (suggestionsEnabled) {
+            await api('POST', '/suggestions/disable');
+            suggestionsEnabled = false;
+            btn.textContent = '🔄 Enable Suggestions';
+            btn.classList.remove('success');
+            status.textContent = 'Disabled';
+            status.style.color = '#95a5a6';
+        } else {
+            await api('POST', '/suggestions/enable');
+            suggestionsEnabled = true;
+            btn.textContent = '🔄 Disable Suggestions';
+            btn.classList.add('success');
+            status.textContent = 'Auto-playing related videos';
+            status.style.color = '#2ecc71';
+        }
+    } catch (err) {
+        status.textContent = 'Error: ' + (err.message || 'Failed');
+        status.style.color = '#e74c3c';
+    }
+}
+
+// Load suggestions status
+async function loadSuggestionsStatus() {
+    try {
+        const data = await api('GET', '/suggestions');
+        suggestionsEnabled = data.enabled;
+        const btn = document.getElementById('suggestionsBtn');
+        const status = document.getElementById('suggestionsStatus');
+        if (btn && status) {
+            if (suggestionsEnabled) {
+                btn.textContent = '🔄 Disable Suggestions';
+                btn.classList.add('success');
+                status.textContent = 'Auto-playing related videos';
+                status.style.color = '#2ecc71';
+            } else {
+                btn.textContent = '🔄 Enable Suggestions';
+                btn.classList.remove('success');
+                status.textContent = '';
+            }
+        }
+    } catch (err) {
+        console.error('Failed to load suggestions status', err);
     }
 }
 

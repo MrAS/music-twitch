@@ -55,7 +55,19 @@
                     <div class="status-card current-playing">
                         <h3>Now Playing</h3>
                         <p id="currentPlaying">--</p>
+                        <div class="stream-progress" id="streamProgress">
+                            <span id="streamTime">00:00:00</span> •
+                            <span id="streamBitrate">0 kbps</span> •
+                            <span id="streamSpeed">0x</span>
+                        </div>
                     </div>
+                </div>
+
+                <!-- Playback Controls -->
+                <div class="playback-controls">
+                    <button onclick="skipTrack()" class="danger">⏭️ Skip</button>
+                    <button onclick="toggleSuggestions()" id="suggestionsBtn">🔄 Enable Suggestions</button>
+                    <span id="suggestionsStatus" class="suggestions-status"></span>
                 </div>
 
                 <!-- Play URL Section -->
