@@ -526,6 +526,7 @@ export class StreamerService {
 
                 // Build args - exact match to working manual command + stability settings
                 args = [
+                    '-re', // Read input at native frame rate (CRITICAL for streaming)
                     ...videoSource, // [-loop, 1, -framerate, 30, -i, URL] or lavfi
                     ...seekArgs, // Seek to resume position
                     '-i', filePath,
@@ -537,7 +538,7 @@ export class StreamerService {
                     '-pix_fmt', 'yuv420p', // Critical for player compatibility
                     '-b:v', preset.videoBitrate,
                     '-maxrate', preset.videoBitrate,
-                    '-bufsize', '2000k', // Good buffer size for stability
+                    '-bufsize', '4000k', // Increased buffer size for stability
                     '-g', '60', // Keyframe interval (2s at 30fps)
                     '-vf', filter,
                     '-c:a', 'aac',
