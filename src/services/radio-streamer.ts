@@ -205,12 +205,23 @@ export class RadioStreamer {
             return;
         }
 
+        // Check if playlist has content
+        const playlistContent = fs.readFileSync(PLAYLIST_FILE, 'utf-8').trim();
+        if (!playlistContent) {
+            logger.warn('Radio: Cannot start - playlist is empty. Add songs first!');
+            throw new Error('Playlist is empty. Add songs before starting radio.');
+        }
+
         logger.info('Starting 24/7 Radio stream...');
         this.isRunning = true;
+        this.retryCount = 0;
 
         // Start FFmpeg with concat demuxer + dynamic overlays
         await this.startFFmpeg();
     }
+
+    private retryCount: number = 0;
+    private maxRetries: number = 3;
 
     private async startFFmpeg(): Promise<void> {
         /*
@@ -267,8 +278,14 @@ export class RadioStreamer {
 
         this.ffmpegProcess = spawn(FFMPEG_PATH, args, { stdio: ['pipe', 'pipe', 'pipe'] });
 
+        // Capture stderr for error diagnosis
+        let stderrBuffer: string[] = [];
+
         this.ffmpegProcess.stderr?.on('data', (data: Buffer) => {
             const line = data.toString();
+            stderrBuffer.push(line);
+            if (stderrBuffer.length > 10) stderrBuffer.shift();
+
             if (line.includes('frame=') || line.includes('time=')) {
                 logger.debug(`Radio FFmpeg: ${line.substring(0, 100)}`);
             }
@@ -280,12 +297,20 @@ export class RadioStreamer {
 
         this.ffmpegProcess.on('close', (code) => {
             logger.info(`Radio FFmpeg exited with code ${code}`);
+
+            if (code !== 0 && code !== 255) {
+                logger.error(`Radio FFmpeg stderr: ${stderrBuffer.join('')}`);
+            }
+
             this.isRunning = false;
 
-            // Auto-restart if unexpected exit
-            if (code !== 0 && code !== 255) {
-                logger.info('Radio FFmpeg crashed, restarting in 5s...');
+            // Auto-restart with retry limit
+            if (code !== 0 && code !== 255 && this.retryCount < this.maxRetries) {
+                this.retryCount++;
+                logger.info(`Radio FFmpeg crashed, retry ${this.retryCount}/${this.maxRetries} in 5s...`);
                 setTimeout(() => this.start(), 5000);
+            } else if (this.retryCount >= this.maxRetries) {
+                logger.error('Radio FFmpeg max retries reached. Stopping.');
             }
         });
 
