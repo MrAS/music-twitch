@@ -164,6 +164,54 @@ export class YouTubeService {
     }
 
     /**
+     * Get related/suggested videos for a given video ID
+     * Uses yt-dlp to fetch YouTube's recommendations
+     */
+    public async getRelatedVideos(videoId: string, count: number = 5): Promise<YouTubeSearchResult[]> {
+        try {
+            logger.info(`Fetching related videos for: ${videoId}`);
+
+            // Get related videos using yt-dlp with the video's watch page
+            const result = await execa(YT_DLP_PATH, [
+                `https://www.youtube.com/watch?v=${videoId}`,
+                '--flat-playlist',
+                '--dump-json',
+                '--no-download',
+                '--extractor-args', 'youtube:player_skip=webpage',
+                '--playlist-items', `1-${count + 1}`, // Get a few extras in case first is current
+                ...getCookiesArgs()
+            ]);
+
+            const lines = result.stdout.split('\n').filter(line => line.trim());
+            const related: YouTubeSearchResult[] = [];
+
+            for (const line of lines) {
+                try {
+                    const info = JSON.parse(line);
+                    // Skip the original video
+                    if (info.id && info.id !== videoId) {
+                        related.push({
+                            id: info.id,
+                            title: info.title || `Video ${info.id}`,
+                            url: `https://www.youtube.com/watch?v=${info.id}`,
+                            duration: info.duration || 0
+                        });
+                    }
+                    if (related.length >= count) break;
+                } catch (e) {
+                    // Skip invalid JSON lines
+                }
+            }
+
+            logger.info(`Found ${related.length} related videos`);
+            return related;
+        } catch (error) {
+            logger.error('Failed to get related videos', error);
+            return [];
+        }
+    }
+
+    /**
      * Download a YouTube video by URL and return the file path
      * Downloads audio-only (M4A) to avoid merge issues. The streamer generates black video.
      */

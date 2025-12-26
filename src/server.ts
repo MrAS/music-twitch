@@ -483,6 +483,28 @@ export function createServer(): express.Application {
         res.json({ success: true });
     });
 
+    // YouTube suggestions mode endpoints
+    app.post('/api/admin/suggestions/enable', (req, res) => {
+        const { queue, youtube } = getServices();
+        queue.setYouTubeService(youtube);
+        queue.enableYouTubeSuggestions();
+        res.json({ success: true, message: 'YouTube suggestions enabled' });
+    });
+
+    app.post('/api/admin/suggestions/disable', (req, res) => {
+        const { queue } = getServices();
+        queue.disableYouTubeSuggestions();
+        res.json({ success: true, message: 'YouTube suggestions disabled' });
+    });
+
+    app.get('/api/admin/suggestions', (req, res) => {
+        const { queue } = getServices();
+        res.json({
+            enabled: queue.isYouTubeSuggestionsEnabled(),
+            autoPlaylistInfo: queue.getAutoPlaylistInfo()
+        });
+    });
+
     // Twitch logs
     app.get('/api/admin/twitch/logs', (req, res) => {
         const { twitchBot } = getServices();

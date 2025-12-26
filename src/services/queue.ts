@@ -15,6 +15,7 @@ export interface AutoPlaylistConfig {
     description: string;
     songsPerBatch: number;
     playedSongs: Set<string>;  // Track already played to ensure uniqueness
+    useYouTubeSuggestions: boolean; // Use YouTube's related videos instead of AI
 }
 
 export class QueueService {
@@ -23,11 +24,13 @@ export class QueueService {
     private timer: NodeJS.Timeout | null = null;
     private isProcessing: boolean = false;
     private isPlayingStandby: boolean = false;
+    private lastPlayedVideoId: string = ''; // Track last played YouTube video for suggestions
     private autoPlaylist: AutoPlaylistConfig = {
         enabled: false,
         description: '',
         songsPerBatch: 3,
-        playedSongs: new Set()
+        playedSongs: new Set(),
+        useYouTubeSuggestions: false
     };
     private youtubeService: any = null;
 
@@ -81,25 +84,47 @@ export class QueueService {
             enabled: true,
             description,
             songsPerBatch,
-            playedSongs: new Set()
+            playedSongs: new Set(),
+            useYouTubeSuggestions: false
         };
         logger.info(`Auto-playlist enabled: "${description}" (${songsPerBatch} songs per batch)`);
     }
 
     public disableAutoPlaylist(): void {
         this.autoPlaylist.enabled = false;
+        this.autoPlaylist.useYouTubeSuggestions = false;
         this.autoPlaylist.playedSongs.clear();
         logger.info('Auto-playlist disabled');
+    }
+
+    public enableYouTubeSuggestions(): void {
+        this.autoPlaylist.enabled = true;
+        this.autoPlaylist.useYouTubeSuggestions = true;
+        this.autoPlaylist.playedSongs.clear();
+        logger.info('YouTube suggestions mode enabled');
+    }
+
+    public disableYouTubeSuggestions(): void {
+        this.autoPlaylist.useYouTubeSuggestions = false;
+        if (!this.autoPlaylist.description) {
+            this.autoPlaylist.enabled = false;
+        }
+        logger.info('YouTube suggestions mode disabled');
+    }
+
+    public isYouTubeSuggestionsEnabled(): boolean {
+        return this.autoPlaylist.useYouTubeSuggestions;
     }
 
     public isAutoPlaylistEnabled(): boolean {
         return this.autoPlaylist.enabled;
     }
 
-    public getAutoPlaylistInfo(): { enabled: boolean; description: string } {
+    public getAutoPlaylistInfo(): { enabled: boolean; description: string; youTubeSuggestions: boolean } {
         return {
             enabled: this.autoPlaylist.enabled,
-            description: this.autoPlaylist.description
+            description: this.autoPlaylist.description,
+            youTubeSuggestions: this.autoPlaylist.useYouTubeSuggestions
         };
     }
 
@@ -253,7 +278,22 @@ export class QueueService {
             await this.streamer.streamFile(filePath, false);
             logger.info('Stream started successfully');
 
-            // 4. Set Timer (add small buffer)
+            // 4. If YouTube suggestions enabled, queue next related video
+            if (this.autoPlaylist.useYouTubeSuggestions && this.youtubeService && this.queue.length === 0) {
+                // Extract video ID from the current item (format: yt_VIDEOID)
+                const videoIdMatch = nextItem.key.match(/^yt_([a-zA-Z0-9_-]{11})/);
+                if (videoIdMatch) {
+                    const currentVideoId = videoIdMatch[1];
+                    this.lastPlayedVideoId = currentVideoId;
+
+                    // Fetch related videos in background (don't block playback)
+                    this.queueNextRelatedVideo(currentVideoId).catch(err => {
+                        logger.error('Failed to queue related video', err);
+                    });
+                }
+            }
+
+            // 5. Set Timer (add small buffer)
             this.timer = setTimeout(() => {
                 this.playNext();
             }, (durationSec + 2) * 1000);
@@ -265,6 +305,48 @@ export class QueueService {
             this.current = null;
             this.isProcessing = false;
             this.playNext();
+        }
+    }
+
+    /**
+     * Queue the next related video from YouTube suggestions
+     */
+    private async queueNextRelatedVideo(videoId: string): Promise<void> {
+        if (!this.youtubeService) return;
+
+        try {
+            const related = await this.youtubeService.getRelatedVideos(videoId, 5);
+
+            // Find first related video that hasn't been played
+            for (const video of related) {
+                if (!this.autoPlaylist.playedSongs.has(video.id)) {
+                    logger.info(`Queueing related video: ${video.title}`);
+
+                    // Download and queue
+                    const filePath = await this.youtubeService.ensureDownloaded(video.id, video.url);
+
+                    const item: AllowedItem = {
+                        key: `yt_${video.id}`,
+                        title: video.title,
+                        source: { type: 'local_file', path: filePath }
+                    };
+
+                    this.queue.push({ ...item, requestedBy: 'YouTube Suggestions' });
+                    this.autoPlaylist.playedSongs.add(video.id);
+
+                    insightsTracker.queueEvent('enqueued', {
+                        title: video.title,
+                        user: 'YouTube Suggestions',
+                        queueLength: this.queue.length
+                    });
+
+                    return; // Only queue one
+                }
+            }
+
+            logger.info('No new related videos found');
+        } catch (error) {
+            logger.error('Failed to get related videos', error);
         }
     }
 }
